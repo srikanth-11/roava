@@ -1,21 +1,32 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { useAppSelector } from '@/hooks/useAppStore';
 import { storage, StorageKeys } from '@/lib/storage';
 
 /**
- * Entry gate: first launch goes to onboarding, returning users straight to
- * the tab shell. Declarative <Redirect> avoids imperative-navigation races
- * with router mount.
+ * Entry gate:
+ *   first launch            → onboarding
+ *   no session, no choice   → sign-in
+ *   session or guest chosen → tabs
+ * Declarative <Redirect>; waits for SecureStore session restore to settle.
  */
 export default function Index() {
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const authStatus = useAppSelector((s) => s.auth.status);
+  const [flags, setFlags] = useState<{ onboarded: boolean; guest: boolean } | null>(null);
 
   useEffect(() => {
-    storage.getString(StorageKeys.onboardingDone).then((v) => setOnboarded(v === 'true'));
+    void Promise.all([
+      storage.getString(StorageKeys.onboardingDone),
+      storage.getString(StorageKeys.guestChosen),
+    ]).then(([onboarded, guest]) => {
+      setFlags({ onboarded: onboarded === 'true', guest: guest === 'true' });
+    });
   }, []);
 
-  if (onboarded === null) return null; // splash still covers this frame
+  if (flags === null || authStatus === 'restoring') return null; // splash covers this
 
-  return <Redirect href={onboarded ? '/home' : '/onboarding'} />;
+  if (!flags.onboarded) return <Redirect href="/onboarding" />;
+  if (authStatus === 'signedIn' || flags.guest) return <Redirect href="/home" />;
+  return <Redirect href="/sign-in" />;
 }

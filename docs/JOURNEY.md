@@ -197,6 +197,34 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 7 — Phase 4: Auth & the Dev Build (2026-07-05)
+
+### 7.0 The dev-build milestone (context)
+
+- `npx expo run:android` produced Roava's own binary (`com.kasir.roava`): CNG prebuild generated `android/` from app.json, local Gradle built it in 17 min (NDK/Gradle caches from the bare era reused). No EAS account needed. Expo Go is retired for this project.
+
+### 7.1 First dev build failed: MMKV needs Nitro Modules
+
+- **Problem:** `expo run:android` failed at `react-native-mmkv/android/build.gradle`: "Project with path ':react-native-nitro-modules' could not be found."
+- **Diagnosis:** MMKV v4 is built on the **Nitro Modules** architecture; `react-native-nitro-modules` is a required peer dependency npm didn't auto-install (peers aren't installed under `--legacy-peer-deps`).
+- **Solution:** `npm i react-native-nitro-modules --legacy-peer-deps`, rebuild.
+- **Lesson:** when using `--legacy-peer-deps` you own peer management manually — read each native library's install docs for its peers; Gradle errors name the missing project.
+
+### 7.2 MMKV still not registered at runtime — deferred by design
+
+- **Problem:** even after a clean `prebuild --clean` + rebuild, runtime error: "The native NitroModules Turbo/Native-Module could not be found" → AppStorage falls back to AsyncStorage.
+- **Diagnosis:** Nitro's runtime registration appears incompatible with brand-new Expo SDK 57 / RN 0.86 as of today; Gradle compiles it but the TurboModule never registers.
+- **Decision:** ship on AsyncStorage — this is exactly why `AppStorage` is an interface with a graceful fallback. Backlog: try `react-native-mmkv@3` (TurboModule-based, no Nitro) at the next native rebuild (Phase 9 requires one anyway).
+- **Lesson:** interfaces + fallbacks turn "blocking native issue" into "backlog item." Also: storage engine swaps orphan existing data (onboarding flags "reset" when MMKV briefly activated) — a migration step is needed when the swap really happens.
+
+### 7.3 Dev-client deep-link behavior ≠ production
+
+- **Observation:** cold-start `roava://destination/tokyo` lands in the dev-launcher first; the link is delivered to the app after a server is selected (and is replayed on next launch). Warm-app links route instantly. Production builds route directly.
+- **Also noted:** back from a cold-start deep link exits the app (deep-linked screen is the only stack entry) — acceptable now; Phase 7 will make Home sit beneath destination screens.
+- **Lesson:** test deep links warm in dev clients; trust cold-start behavior only in release builds.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

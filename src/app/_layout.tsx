@@ -16,6 +16,7 @@ import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { palette } from '@/lib/palette';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 import { createAppStore, type AppStore } from '@/store';
+import { restoreSession } from '@/store/authSlice';
 
 // Keep the native splash visible until fonts are ready — prevents a flash of
 // fallback-font text on first frame.
@@ -38,6 +39,7 @@ function ThemedApp() {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+        <Stack.Screen name="sign-in" options={{ animation: 'fade' }} />
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="destination/[id]" />
       </Stack>
@@ -58,8 +60,12 @@ export default function RootLayout() {
 
   // Store creation is async: persisted slices rehydrate BEFORE first render,
   // so offline cold starts paint cached data immediately (no flash of empty).
+  // Session restore (SecureStore) kicks off immediately after.
   useEffect(() => {
-    void createAppStore().then(setStore);
+    void createAppStore().then((s) => {
+      setStore(s);
+      void s.dispatch(restoreSession());
+    });
   }, []);
 
   const ready = fontsLoaded && store !== null;

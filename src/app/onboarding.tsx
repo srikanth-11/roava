@@ -68,7 +68,7 @@ export default function Onboarding() {
 
   const finish = () => {
     void storage.setString(StorageKeys.onboardingDone, 'true');
-    router.replace('/home');
+    router.replace('/sign-in');
   };
 
   const isLast = page === SLIDES.length - 1;

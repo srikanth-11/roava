@@ -1,12 +1,31 @@
-import { Link } from 'expo-router';
-import { Database, Moon, Palette, Sun, UserRound } from 'lucide-react-native';
-import { View } from 'react-native';
+import { Link, router } from 'expo-router';
+import { Database, LogIn, LogOut, Moon, Palette, Sun, UserRound } from 'lucide-react-native';
+import { Alert, View } from 'react-native';
 
-import { Button, Card, Icon, Screen, Text } from '@/components/ui';
+import { Badge, Button, Card, Icon, Screen, Text } from '@/components/ui';
+import { useAppDispatch, useAppSelector } from '@/hooks/useAppStore';
+import { storage, storageEngine, StorageKeys } from '@/lib/storage';
 import { useTheme } from '@/lib/theme';
+import { signOut } from '@/store/authSlice';
 
 export default function ProfileScreen() {
   const { mode, setMode, resolved } = useTheme();
+  const dispatch = useAppDispatch();
+  const session = useAppSelector((s) => s.auth.session);
+
+  const confirmSignOut = () => {
+    Alert.alert('Sign out?', 'Your trips and favorites stay on this device.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => {
+          void storage.delete(StorageKeys.guestChosen);
+          void dispatch(signOut()).then(() => router.replace('/sign-in'));
+        },
+      },
+    ]);
+  };
 
   return (
     <Screen scroll>
@@ -16,14 +35,44 @@ export default function ProfileScreen() {
         <Card>
           <View className="flex-row items-center gap-3">
             <View className="h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Icon icon={UserRound} color="primary" />
+              {session ? (
+                <Text variant="h3" color="primary">
+                  {session.user.name.charAt(0).toUpperCase()}
+                </Text>
+              ) : (
+                <Icon icon={UserRound} color="primary" />
+              )}
             </View>
-            <View>
-              <Text variant="h3">Guest traveler</Text>
+            <View className="flex-1">
+              <Text variant="h3">{session ? session.user.name : 'Guest traveler'}</Text>
               <Text variant="body-sm" color="muted">
-                Sign-in arrives in Phase 4
+                {session ? session.user.email : 'Sign in to sync across devices'}
               </Text>
             </View>
+            {session ? (
+              <Badge
+                label={session.provider}
+                variant={session.provider === 'google' ? 'success' : 'outline'}
+              />
+            ) : null}
+          </View>
+          <View className="mt-4">
+            {session ? (
+              <Button
+                label="Sign out"
+                variant="outline"
+                size="sm"
+                icon={LogOut}
+                onPress={confirmSignOut}
+              />
+            ) : (
+              <Button
+                label="Sign in"
+                size="sm"
+                icon={LogIn}
+                onPress={() => router.push('/sign-in')}
+              />
+            )}
           </View>
         </Card>
 
@@ -47,6 +96,7 @@ export default function ProfileScreen() {
 
         {__DEV__ ? (
           <View className="gap-2">
+            <Badge label={`storage: ${storageEngine}`} variant="outline" />
             <Link href="/dev-gallery" asChild>
               <Button label="Component gallery" variant="outline" icon={Palette} />
             </Link>
