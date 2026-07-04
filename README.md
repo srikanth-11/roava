@@ -1,56 +1,76 @@
-# Welcome to your Expo app 👋
+# Roava 🧭
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern, offline-capable travel companion — discover destinations, plan trips, track flights, check weather, and travel smarter.
 
-## Get started
+Built with **Expo** as a production-quality, frontend-first React Native application. See `docs/plans/2026-07-04-roava-master-plan.md` for the full architecture and phase roadmap.
 
-1. Install dependencies
+## Tech Stack
 
-   ```bash
-   npm install
-   ```
+Expo SDK 57 (React Native 0.86, New Architecture) · TypeScript (strict) · Expo Router · NativeWind · Redux Toolkit + RTK Query · MMKV · Reanimated · FlashList
 
-2. Start the app
+## Machine Setup (Windows)
 
-   ```bash
-   npx expo start
-   ```
+| Tool                 | Version                         | Notes                                                                         |
+| -------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
+| Node                 | 24.x LTS                        | via nvm-windows: `nvm install 24.18.0 && nvm use 24.18.0` (elevated terminal) |
+| Android Studio + SDK | platform 36                     | only needed for the emulator and later EAS dev builds                         |
+| Emulator             | `Roava_Pixel` (Pixel 7, API 36) | or use a physical phone with the Expo Go app (QR scan)                        |
 
-In the output, you'll find options to open the app in a
+Environment variables (needed for emulator/dev-build workflows):
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+JAVA_HOME    = C:\Program Files\Android\Android Studio\jbr
+ANDROID_HOME = %LOCALAPPDATA%\Android\Sdk
+PATH        += %ANDROID_HOME%\platform-tools;%ANDROID_HOME%\emulator
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Running the App
 
-### Other setup steps
+```bash
+npm install
+cp .env.example .env    # fill in API keys (never commit .env)
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+npm start               # Metro + Expo dev server
+# press "a" to open on the Android emulator (auto-installs Expo Go)
+# or scan the QR code with the Expo Go app on your phone
+```
 
-## Learn more
+## Scripts
 
-To learn more about developing your project with Expo, look at the following resources:
+| Script              | Purpose                                 |
+| ------------------- | --------------------------------------- |
+| `npm start`         | Expo dev server (press `a` for Android) |
+| `npm run android`   | Start + open on Android directly        |
+| `npm run lint`      | ESLint (eslint-config-expo)             |
+| `npm run typecheck` | `tsc --noEmit`                          |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Commit-time gates (husky): lint-staged (ESLint + Prettier on staged files), full typecheck, and Conventional Commits message format (`feat(scope): subject`).
 
-## Join the community
+## Project Structure
 
-Join our community of developers creating universal apps.
+```
+src/
+├── app/              # Expo Router routes ONLY (screens & layouts, no logic)
+├── components/ui/    # design-system primitives
+├── components/shared/# composed cross-feature components
+├── features/         # feature modules (components/hooks/api/types per feature)
+├── services/         # API client, interceptors, error mapping
+├── repositories/     # data-access interfaces + implementations (live/mock)
+├── store/            # Redux Toolkit + RTK Query
+├── lib/              # mmkv, secure-store, theme, haptics
+├── hooks/            # global hooks
+├── mocks/            # isolated mock data
+└── types/            # global types
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Layering rule: screens → features → hooks → RTK Query → repositories → services. Nothing skips a layer.
+
+## Environment Variables
+
+Expo loads `.env` natively. Only `EXPO_PUBLIC_*` prefixed vars reach app code — and they are **compiled into the binary and extractable**. Free, quota-capped API keys only; real secrets (session tokens) live in expo-secure-store at runtime.
+
+## Troubleshooting
+
+- **Stale cache weirdness:** `npx expo start --clear`
+- **Doctor:** `npx expo-doctor` diagnoses dependency/config issues
+- **Emulator not detected:** start it first (`emulator -avd Roava_Pixel`), check `adb devices`

@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# env secrets (EXPO_PUBLIC_* still ship in the binary - free keys only)
+.env

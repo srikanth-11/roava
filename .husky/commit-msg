@@ -1,0 +1,8 @@
+head -n 1 "$1" | grep -qE "^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\([a-z0-9-]+\))?!?: .{1,72}$" || {
+  echo ""
+  echo "✖ Commit message must follow Conventional Commits:"
+  echo "  <type>(<optional-scope>): <subject>  (max 72 chars)"
+  echo "  types: feat fix chore docs style refactor perf test build ci revert"
+  echo "  example: feat(search): add debounced city search"
+  exit 1
+}
