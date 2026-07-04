@@ -38,6 +38,7 @@ Roava is a production-quality, offline-capable travel companion app (Expo SDK 57
 ## Current Status (update at every phase boundary)
 
 - **Phase 0 (Foundation): APPROVED & merged to main.**
-- **Phase 1 (Design System): COMPLETE** — awaiting "Phase Approved". Branch `feat/phase-01-design-system`. NativeWind v4 + tailwind 3.4 wired; Modern Explorer tokens as CSS vars (light/dark); Satoshi + Inter loaded splash-gated; theme store (light/dark/system) persisted via `AppStorage` interface (AsyncStorage now, MMKV at Phase 4); 10 primitives in `src/components/ui`; dev gallery at `/dev-gallery` verified in both themes on emulator. Reanimated uses `.get()/.set()` (React Compiler requirement).
-- **Next: Phase 2 — Navigation Shell & Onboarding** (5-tab shell, auth group, typed routes, deep linking `roava://`, animated tab bar, onboarding slides).
+- **Phase 1 (Design System): APPROVED & merged to main.** 10 primitives in `src/components/ui`, tokens as CSS vars, theme store persisted behind `AppStorage`, dev gallery at `/dev-gallery`. Reanimated uses `.get()/.set()` (React Compiler requirement).
+- **Phase 2 (Navigation Shell): COMPLETE** — awaiting "Phase Approved". Branch `feat/phase-02-navigation`. Routes: index gate → onboarding (3 slides, animated dots, persisted flag) or /home; (tabs) group with 5 screens + custom `AnimatedTabBar` (Reanimated indicator, haptics, a11y); `destination/[id]` deep-link target verified via `exp://.../--/destination/paris` (custom `roava://` scheme configured, becomes live at Phase 4 dev build — Expo Go limitation, JOURNEY 5.2).
+- **Next: Phase 3 — State & Data Layer** (Redux Toolkit + RTK Query axiosBaseQuery, interceptors/retry/AppError mapping, repository interfaces + mocks, MMKV-style persistence via AppStorage, useOnline + offline banner).
 - Backlog: commitlint graduation; permanent LAN fix for phone (Private network profile + `REACT_NATIVE_PACKAGER_HOSTNAME`); MMKV swap at Phase 4.

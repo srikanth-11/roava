@@ -29,4 +29,5 @@ export const storage: AppStorage = new AsyncAppStorage();
 
 export const StorageKeys = {
   themeMode: 'roava.theme-mode',
+  onboardingDone: 'roava.onboarding-done',
 } as const;

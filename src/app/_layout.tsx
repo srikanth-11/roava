@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { palette } from '@/lib/palette';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 
 // Keep the native splash visible until fonts are ready — prevents a flash of
@@ -26,9 +27,17 @@ function ThemedApp() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: 'transparent' },
+          // Navigator container color — prevents white/black flashes between
+          // screens during transitions in the opposite theme.
+          contentStyle: { backgroundColor: palette[resolved].background },
+          animation: 'slide_from_right',
         }}
-      />
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="destination/[id]" />
+      </Stack>
     </>
   );
 }

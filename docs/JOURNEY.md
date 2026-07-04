@@ -157,6 +157,24 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 5 — Phase 2: Navigation Shell (2026-07-04, night)
+
+### 5.1 `BottomTabBarProps` type wouldn't resolve
+
+- **Problem:** custom tab bar importing `BottomTabBarProps` from `@react-navigation/bottom-tabs` → TS couldn't find the types.
+- **Diagnosis:** the package was only a _transitive_ dependency (via expo-router); TS type resolution needs it declared directly.
+- **Solution:** `npm i @react-navigation/bottom-tabs --legacy-peer-deps` (expo install choked on the a11y plugin's stale peers).
+- **Lesson:** import only from packages you declare — transitive deps are an implementation detail that TS rightly refuses to see.
+
+### 5.2 Custom URL schemes don't work in Expo Go
+
+- **Problem:** the plan says deep links use `roava://`, but Expo Go can't register our custom scheme.
+- **Diagnosis:** Expo Go is a shared host app — its manifest owns `exp://`; per-project schemes only exist in dev/production builds where WE own the manifest.
+- **Solution:** verify deep linking now via `exp://<host>/--/destination/paris` (adb intent); `roava://` becomes real at Phase 4's dev build. `scheme: "roava"` already configured in app.json.
+- **Lesson:** the `/--/` separator marks where the in-app path starts in Expo Go links; scheme config is inert until you own the binary.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

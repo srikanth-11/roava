@@ -1,24 +1,21 @@
-import { Link } from 'expo-router';
-import { View } from 'react-native';
+import { Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
 
-import { Screen, Text } from '@/components/ui';
+import { storage, StorageKeys } from '@/lib/storage';
 
+/**
+ * Entry gate: first launch goes to onboarding, returning users straight to
+ * the tab shell. Declarative <Redirect> avoids imperative-navigation races
+ * with router mount.
+ */
 export default function Index() {
-  return (
-    <Screen>
-      <View className="flex-1 items-center justify-center gap-2 px-8">
-        <Text variant="display">Roava</Text>
-        <Text variant="body" color="muted" className="text-center">
-          Phase 1 — design system in progress.
-        </Text>
-        {__DEV__ ? (
-          <Link href="/dev-gallery" className="mt-4">
-            <Text variant="label" color="primary">
-              Open component gallery →
-            </Text>
-          </Link>
-        ) : null}
-      </View>
-    </Screen>
-  );
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    storage.getString(StorageKeys.onboardingDone).then((v) => setOnboarded(v === 'true'));
+  }, []);
+
+  if (onboarded === null) return null; // splash still covers this frame
+
+  return <Redirect href={onboarded ? '/home' : '/onboarding'} />;
 }

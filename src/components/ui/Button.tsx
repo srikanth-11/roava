@@ -1,6 +1,8 @@
+import type { LucideIcon } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, type PressableProps } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
+import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { hapticLight } from '@/lib/haptics';
 
@@ -38,6 +40,8 @@ export interface ButtonProps extends Omit<PressableProps, 'children'> {
   size?: ButtonSize;
   loading?: boolean;
   haptic?: boolean;
+  /** Optional leading icon. */
+  icon?: LucideIcon;
   className?: string;
 }
 
@@ -47,6 +51,7 @@ export function Button({
   size = 'md',
   loading = false,
   haptic = true,
+  icon,
   disabled,
   onPress,
   className = '',
@@ -84,6 +89,12 @@ export function Button({
           <ActivityIndicator
             size="small"
             color={variant === 'outline' || variant === 'ghost' ? undefined : 'white'}
+          />
+        ) : icon ? (
+          <Icon
+            icon={icon}
+            size={size === 'lg' ? 20 : 16}
+            color={textColor[variant] === 'default' ? 'default' : textColor[variant]}
           />
         ) : null}
         <Text variant="label" color={textColor[variant]}>
