@@ -9,10 +9,13 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Provider } from 'react-redux';
 
+import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { palette } from '@/lib/palette';
 import { ThemeProvider, useTheme } from '@/lib/theme';
+import { createAppStore, type AppStore } from '@/store';
 
 // Keep the native splash visible until fonts are ready — prevents a flash of
 // fallback-font text on first frame.
@@ -38,11 +41,13 @@ function ThemedApp() {
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="destination/[id]" />
       </Stack>
+      <OfflineBanner />
     </>
   );
 }
 
 export default function RootLayout() {
+  const [store, setStore] = useState<AppStore | null>(null);
   const [fontsLoaded] = useFonts({
     'Satoshi-Bold': require('../../assets/fonts/Satoshi-Bold.ttf'),
     'Satoshi-Medium': require('../../assets/fonts/Satoshi-Medium.ttf'),
@@ -51,19 +56,29 @@ export default function RootLayout() {
     Inter_600SemiBold,
   });
 
+  // Store creation is async: persisted slices rehydrate BEFORE first render,
+  // so offline cold starts paint cached data immediately (no flash of empty).
   useEffect(() => {
-    if (fontsLoaded) {
+    void createAppStore().then(setStore);
+  }, []);
+
+  const ready = fontsLoaded && store !== null;
+
+  useEffect(() => {
+    if (ready) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [ready]);
 
-  if (!fontsLoaded) {
+  if (!ready) {
     return null; // splash stays visible
   }
 
   return (
-    <ThemeProvider>
-      <ThemedApp />
-    </ThemeProvider>
+    <Provider store={store}>
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
+    </Provider>
   );
 }

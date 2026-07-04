@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { Moon, Palette, Sun, UserRound } from 'lucide-react-native';
+import { Database, Moon, Palette, Sun, UserRound } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { Button, Card, Icon, Screen, Text } from '@/components/ui';
@@ -46,9 +46,14 @@ export default function ProfileScreen() {
         </Card>
 
         {__DEV__ ? (
-          <Link href="/dev-gallery" asChild>
-            <Button label="Component gallery" variant="outline" icon={Palette} />
-          </Link>
+          <View className="gap-2">
+            <Link href="/dev-gallery" asChild>
+              <Button label="Component gallery" variant="outline" icon={Palette} />
+            </Link>
+            <Link href="/dev-data" asChild>
+              <Button label="Data layer demo" variant="outline" icon={Database} />
+            </Link>
+          </View>
         ) : null}
       </View>
     </Screen>

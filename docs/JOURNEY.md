@@ -175,6 +175,28 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 6 — Phase 3: Data Layer (2026-07-04, late night)
+
+### 6.1 RTK Query error is a union, not your type
+
+- **Problem:** `error.userMessage` failed to typecheck — RTK Query types errors as `AppError | SerializedError` (its own fallback for exceptions thrown outside your queryFn contract).
+- **Solution:** the `isAppError` type guard (already in `services/errors.ts`) narrows before rendering.
+- **Lesson:** even with a typed baseQuery, RTK Query reserves the right to hand you a `SerializedError` — always guard at the UI boundary.
+
+### 6.2 "Unmatched Route" after adding a new route file
+
+- **Problem:** deep-linking to freshly created `/dev-data` showed Expo Router's Unmatched Route screen.
+- **Diagnosis:** the app was running a bundle built before the file existed; new _route files_ (unlike edits) need a fresh bundle, and the deep link raced it.
+- **Solution:** force-stop the app and relaunch so it fetches the current bundle.
+- **Lesson:** Fast Refresh patches modules; new routes change the router manifest — reload the app after adding route files.
+
+### 6.3 Airplane-mode testing with a dev server (technique)
+
+- **Insight:** adb `reverse` tunnels ride the emulator's qemu pipe, not the network — so `exp://127.0.0.1:8081` still serves the bundle in airplane mode while NetInfo correctly reports offline. Perfect setup for offline UX testing in development.
+- **Caveat noted:** Expo Go stalls ~60s on startup probing for updates before falling back to the tunnel — patience, not breakage.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
