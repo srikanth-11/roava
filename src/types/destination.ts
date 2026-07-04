@@ -6,4 +6,7 @@ export interface Destination {
   blurb: string;
   /** Remote image URL (Unsplash in live impl). */
   imageUrl: string | null;
+  /** Unsplash attribution — rendering it is an API-terms requirement. */
+  photoCredit: string | null;
+  population: number | null;
 }

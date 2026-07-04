@@ -1,19 +1,76 @@
+import { storage } from '@/lib/storage';
 import { mockDestinations } from '@/mocks/destinations';
 import { toAppError } from '@/services/errors';
+import { fetchTopCities } from '@/services/geodb';
+import { searchCityPhoto, type CityPhoto } from '@/services/unsplash';
 import type { Destination } from '@/types/destination';
 
 /**
  * Data-access contract for destinations. Screens and RTK Query know ONLY this
- * interface — the live GeoDB/Unsplash implementation replaces the mock in
- * Phase 5 without touching a single screen.
+ * interface — implementations swap freely (mock ↔ live).
  */
 export interface DestinationsRepository {
   getTrending(): Promise<Destination[]>;
 }
 
+/* ------------------------------------------------------------------ */
+/* Live implementation: GeoDB (cities) + Unsplash (imagery)            */
+/* ------------------------------------------------------------------ */
+
+const IMAGE_CACHE_PREFIX = 'roava.image-cache.';
+
+async function getCachedPhoto(cityId: string): Promise<CityPhoto | null> {
+  const raw = await storage.getString(`${IMAGE_CACHE_PREFIX}${cityId}`);
+  return raw ? (JSON.parse(raw) as CityPhoto) : null;
+}
+
+/**
+ * Unsplash demo tier = 50 req/h. Photos are looked up once per city, then
+ * served from AppStorage forever — a refresh with warm image cache costs
+ * ZERO Unsplash requests.
+ */
+async function getPhotoWithCache(cityId: string, cityName: string): Promise<CityPhoto | null> {
+  const cached = await getCachedPhoto(cityId);
+  if (cached) return cached;
+  try {
+    const photo = await searchCityPhoto(cityName);
+    if (photo) {
+      await storage.setString(`${IMAGE_CACHE_PREFIX}${cityId}`, JSON.stringify(photo));
+    }
+    return photo;
+  } catch {
+    // Imagery is enhancement, not content — a missing photo never fails the feed.
+    return null;
+  }
+}
+
+export class LiveDestinationsRepository implements DestinationsRepository {
+  async getTrending(): Promise<Destination[]> {
+    const cities = await fetchTopCities(10);
+
+    return Promise.all(
+      cities.map(async (city) => {
+        const photo = await getPhotoWithCache(String(city.id), city.city);
+        return {
+          id: String(city.id),
+          name: city.city,
+          country: city.country,
+          blurb: `${city.country} · ${(city.population / 1_000_000).toFixed(1)}M people`,
+          imageUrl: photo?.url ?? null,
+          photoCredit: photo?.credit ?? null,
+          population: city.population,
+        } satisfies Destination;
+      }),
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mock implementation (no API keys / dev harness)                     */
+/* ------------------------------------------------------------------ */
+
 interface MockBehavior {
   latencyMs: number;
-  /** Next call fails with this kind of failure (one-shot). */
   failNext: 'none' | 'network' | 'server' | 'empty';
 }
 
@@ -22,7 +79,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class MockDestinationsRepository implements DestinationsRepository {
   private behavior: MockBehavior = { latencyMs: 900, failNext: 'none' };
 
-  /** Dev-only control surface so the demo screen can reproduce every state. */
   setNextBehavior(fail: MockBehavior['failNext'], latencyMs = 900): void {
     this.behavior = { latencyMs, failNext: fail };
   }
@@ -49,5 +105,15 @@ export class MockDestinationsRepository implements DestinationsRepository {
   }
 }
 
-/** Swap point: Phase 5 replaces this with the live implementation. */
-export const destinationsRepository: DestinationsRepository = new MockDestinationsRepository();
+/* ------------------------------------------------------------------ */
+/* Selection: live when keys exist, mock otherwise                     */
+/* ------------------------------------------------------------------ */
+
+const hasLiveKeys =
+  !!process.env.EXPO_PUBLIC_GEODB_API_KEY && !!process.env.EXPO_PUBLIC_UNSPLASH_ACCESS_KEY;
+
+export const destinationsRepository: DestinationsRepository = hasLiveKeys
+  ? new LiveDestinationsRepository()
+  : new MockDestinationsRepository();
+
+export const destinationsSource = hasLiveKeys ? 'live' : 'mock';

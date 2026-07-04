@@ -225,6 +225,27 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 8 — Phase 5: Live APIs (2026-07-05)
+
+### 8.1 GeoDB 404: wrong RapidAPI host
+
+- **Problem:** first live request → `404 {"message":"API doesn't exists"}`.
+- **Diagnosis:** reproduced outside the app with PowerShell + the same key → RapidAPI's 404 means the _host header_ matched no API. Correct host is `wft-geo-db.p.rapidapi.com` (not `wft-geodb-cities...`).
+- **Solution:** fixed host; verified with a direct request before touching app code.
+- **Lesson:** when an API fails, reproduce with curl/PowerShell first — isolates "my code" from "their endpoint" in seconds. RapidAPI 404s are host-level, 403s are subscription-level.
+
+### 8.2 Offline-first proven against a real API
+
+- **Result:** airplane-mode cold start → GeoDB fails → feed renders from persisted `cache.trending` with "saved data" chip + offline banner. Photos still render because **expo-image's disk cache** is its own second cache layer.
+- **Bonus lesson:** three cache layers now cooperate — RTK Query (memory), cache slice via AppStorage (state), expo-image (image files). Know which layer serves what.
+
+### 8.3 Metro log noise: web SSR renders the app on localhost hits
+
+- **Observation:** health-checking `http://localhost:8081` makes Expo's router-server render the app for _web_ — firing real API calls from Node and spamming SSR stack traces into the Metro log.
+- **Lesson:** for debugging device behavior, trust `adb logcat -s ReactNativeJS:*` over the Metro terminal; and don't poll Metro's root URL casually when SSR is enabled (`web.output: static`).
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

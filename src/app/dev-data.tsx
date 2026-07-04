@@ -18,7 +18,8 @@ import { isAppError } from '@/services/errors';
 import { destinationsRepository, MockDestinationsRepository } from '@/repositories/destinations';
 import { useGetTrendingQuery } from '@/store/api';
 
-const mockRepo = destinationsRepository as MockDestinationsRepository;
+const mockRepo =
+  destinationsRepository instanceof MockDestinationsRepository ? destinationsRepository : null;
 
 /** Dev harness proving the data layer: every UI state reproducible on demand. */
 export default function DevData() {
@@ -29,7 +30,7 @@ export default function DevData() {
   if (!__DEV__) return null;
 
   const trigger = (fail: 'none' | 'network' | 'server' | 'empty') => {
-    mockRepo.setNextBehavior(fail);
+    mockRepo?.setNextBehavior(fail);
     void refetch();
   };
 

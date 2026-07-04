@@ -5,8 +5,10 @@ export const mockDestinations: Destination[] = [
     id: 'paris',
     name: 'Paris',
     country: 'France',
-    blurb: 'Cafés, museums, and golden-hour walks along the Seine.',
+    blurb: 'CafÃ©s, museums, and golden-hour walks along the Seine.',
     imageUrl: null,
+    photoCredit: null,
+    population: null,
   },
   {
     id: 'tokyo',
@@ -14,6 +16,8 @@ export const mockDestinations: Destination[] = [
     country: 'Japan',
     blurb: 'Neon nights, quiet shrines, and the best food city on Earth.',
     imageUrl: null,
+    photoCredit: null,
+    population: null,
   },
   {
     id: 'lisbon',
@@ -21,6 +25,8 @@ export const mockDestinations: Destination[] = [
     country: 'Portugal',
     blurb: 'Tiled hills, tram 28, and pastel de nata for breakfast.',
     imageUrl: null,
+    photoCredit: null,
+    population: null,
   },
   {
     id: 'marrakech',
@@ -28,12 +34,16 @@ export const mockDestinations: Destination[] = [
     country: 'Morocco',
     blurb: 'Souks, spices, and riads hiding behind carved doors.',
     imageUrl: null,
+    photoCredit: null,
+    population: null,
   },
   {
     id: 'queenstown',
     name: 'Queenstown',
     country: 'New Zealand',
-    blurb: 'Adventure capital — bungee, peaks, and glacial lakes.',
+    blurb: 'Adventure capital â€” bungee, peaks, and glacial lakes.',
     imageUrl: null,
+    photoCredit: null,
+    population: null,
   },
 ];
