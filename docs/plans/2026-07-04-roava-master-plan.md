@@ -1,6 +1,6 @@
 # Roava — Master Implementation Plan (Expo)
 
-> **Process contract:** Built one phase at a time. Every phase ends with the full 16-point debrief (architecture, trade-offs, RN concepts, performance, a11y, security, interview questions, homework, branch, commit, improvements) and **waits for "Phase Approved"** before the next phase begins. Before each phase starts, a detailed bite-sized task plan for that phase is written to `docs/plans/phase-NN-<name>.md`.
+> **Process contract:** Built one phase at a time. Every phase ends with the full 16-point debrief (architecture, trade-offs, RN concepts, performance, a11y, security, interview questions, homework, branch, commit, improvements) and **waits for "Phase Approved"** before the next phase begins. Before each phase starts, a detailed bite-sized task plan for that phase is written to `docs/plans/phase-NN-<name>.md`. **Every problem encountered and its solution is logged in `docs/JOURNEY.md` (Problem → Diagnosis → Solution → Lesson) in the phase it occurred — no exceptions.**
 
 > **Decision record (2026-07-04):** Project started on bare RN CLI; after completing a bare Phase 0 (32-min first Gradle build, manual SDK/AVD setup, three-config aliasing), the developer chose to **switch to Expo** for iteration speed. The bare-RN experience was kept as learning; native-layer depth is still available on demand via `npx expo prebuild` (CNG) and EAS dev builds. The machine setup from that phase carries over fully.
 
@@ -42,19 +42,19 @@
 
 ### Color tokens (semantic, per theme)
 
-| Token | Light | Dark | Role |
-|---|---|---|---|
-| `primary` | `#EA580C` | `#FB923C` | CTAs, active states |
-| `on-primary` | `#FFFFFF` | `#1C1005` | Text/icon on primary |
-| `secondary` | `#0891B2` | `#22D3EE` | Maps, links, info accents |
-| `accent` | `#D97706` | `#FBBF24` | Highlights, ratings |
-| `background` | `#FFF7ED` | `#0B1120` | App background |
-| `surface` | `#FFFFFF` | `#1E293B` | Cards, sheets |
-| `foreground` | `#0F172A` | `#F1F5F9` | Primary text |
-| `muted-foreground` | `#64748B` | `#94A3B8` | Secondary text (≥3:1) |
-| `border` | `#FCEAE1` | `#334155` | Dividers, outlines |
-| `destructive` | `#DC2626` | `#F87171` | Errors, deletes |
-| `success` | `#16A34A` | `#4ADE80` | Confirmations |
+| Token              | Light     | Dark      | Role                      |
+| ------------------ | --------- | --------- | ------------------------- |
+| `primary`          | `#EA580C` | `#FB923C` | CTAs, active states       |
+| `on-primary`       | `#FFFFFF` | `#1C1005` | Text/icon on primary      |
+| `secondary`        | `#0891B2` | `#22D3EE` | Maps, links, info accents |
+| `accent`           | `#D97706` | `#FBBF24` | Highlights, ratings       |
+| `background`       | `#FFF7ED` | `#0B1120` | App background            |
+| `surface`          | `#FFFFFF` | `#1E293B` | Cards, sheets             |
+| `foreground`       | `#0F172A` | `#F1F5F9` | Primary text              |
+| `muted-foreground` | `#64748B` | `#94A3B8` | Secondary text (≥3:1)     |
+| `border`           | `#FCEAE1` | `#334155` | Dividers, outlines        |
+| `destructive`      | `#DC2626` | `#F87171` | Errors, deletes           |
+| `success`          | `#16A34A` | `#4ADE80` | Confirmations             |
 
 Dark mode uses lightened, desaturated variants (never inverted); both themes designed and contrast-tested together.
 
@@ -106,16 +106,16 @@ roava/
 
 ## Public API Map & Key-Safety Verdicts
 
-| Feature | API | Auth model | Mobile-safe? |
-|---|---|---|---|
-| Cities/countries | GeoDB Cities (RapidAPI free) | header key | ⚠️ extractable — free tier, quota-capped |
-| Weather/AQI | OpenWeather | query key | ⚠️ same |
-| Attractions/POI | Overpass API (OSM) | none | ✅ |
-| Map tiles | react-native-maps (Google provider) | key restricted by package + SHA-1 | ✅ |
-| Currency | open.er-api.com | none | ✅ |
-| Flights | OpenSky Network | anonymous (rate-limited) | ✅ |
-| Imagery | Unsplash (demo tier) | key | ⚠️ 50 req/h — cached aggressively |
-| Auth | Google Sign-In | OAuth (no client secret) | ✅ |
+| Feature          | API                                 | Auth model                        | Mobile-safe?                             |
+| ---------------- | ----------------------------------- | --------------------------------- | ---------------------------------------- |
+| Cities/countries | GeoDB Cities (RapidAPI free)        | header key                        | ⚠️ extractable — free tier, quota-capped |
+| Weather/AQI      | OpenWeather                         | query key                         | ⚠️ same                                  |
+| Attractions/POI  | Overpass API (OSM)                  | none                              | ✅                                       |
+| Map tiles        | react-native-maps (Google provider) | key restricted by package + SHA-1 | ✅                                       |
+| Currency         | open.er-api.com                     | none                              | ✅                                       |
+| Flights          | OpenSky Network                     | anonymous (rate-limited)          | ✅                                       |
+| Imagery          | Unsplash (demo tier)                | key                               | ⚠️ 50 req/h — cached aggressively        |
+| Auth             | Google Sign-In                      | OAuth (no client secret)          | ✅                                       |
 
 Where a key is extractable we ship it only because it is a free, quota-capped, non-billing key; the production path (thin proxy) is documented but not built, per the frontend-first rule.
 
@@ -127,35 +127,35 @@ Where a key is extractable we ship it only because it is a free, quota-capped, n
 
 **Phase 0 · Project Foundation & Tooling** — `feat/phase-00-foundation`
 `npx create-expo-app` (TypeScript), strict tsconfig + `@/` alias (Expo/Metro reads tsconfig paths natively — one config, not three), ESLint (+ a11y plugin), Prettier, Husky + lint-staged + conventional-commit hook, folder skeleton, `EXPO_PUBLIC_*` env strategy + `.env.example`, README, run in **Expo Go** on `Roava_Pixel` and optionally on a physical phone (QR scan).
-*Teaches:* Expo vs bare RN (what CNG/prebuild does with the `android/` folder we hand-managed before), Expo Go vs dev builds, Metro, mobile env vars.
-*Exit:* app hot-reloads in Expo Go on the emulator; commit gates fire.
+_Teaches:_ Expo vs bare RN (what CNG/prebuild does with the `android/` folder we hand-managed before), Expo Go vs dev builds, Metro, mobile env vars.
+_Exit:_ app hot-reloads in Expo Go on the emulator; commit gates fire.
 
 **Phase 1 · Design System & UI Kit** — `feat/phase-01-design-system`
 NativeWind v4 token set (CSS-variable themes), fonts via expo-font splash-gated, primitives: `Text`, `Button` (variants/loading/haptic), `Card`, `Input`, `Badge`, `Skeleton`, `EmptyState`, `ErrorState`, `Screen`, `Icon`. Theme store (light/dark/system) in MMKV. Hidden dev gallery screen rendering every primitive in both themes.
-*Exit:* gallery passes contrast + touch-target audit in both themes.
+_Exit:_ gallery passes contrast + touch-target audit in both themes.
 
 **Phase 2 · Navigation Shell & Onboarding** — `feat/phase-02-navigation`
 Expo Router: 5-tab shell (Home, Search, Trips, Favorites, Profile), auth group, destination detail route, typed routes, deep-linking scheme (`roava://`), Android back handling, custom animated tab bar (Reanimated), 3-slide onboarding with persisted skip.
-*Exit:* cold start lands correctly for new vs returning user; `npx uri-scheme open roava://destination/paris --android` works.
+_Exit:_ cold start lands correctly for new vs returning user; `npx uri-scheme open roava://destination/paris --android` works.
 
 **Phase 3 · State & Data Layer** — `feat/phase-03-data-layer`
 Redux Toolkit + RTK Query with `axiosBaseQuery`, interceptors (timeout, retry/backoff, typed `AppError` mapping), repository interfaces + mock impls, MMKV persistence for selected slices, `useOnline` (NetInfo) + offline banner.
-*Exit:* demo screen shows loading/empty/error/offline states from a mock repo; airplane-mode relaunch serves cache.
+_Exit:_ demo screen shows loading/empty/error/offline states from a mock repo; airplane-mode relaunch serves cache.
 
 ### Arc B — Identity & Discovery (4–7)
 
-**Phase 4 · Auth & Profile** — `feat/phase-04-auth` — Google Sign-In (`@react-native-google-signin/google-signin`) — **first EAS development-build milestone** (Expo Go can't run it); session in SecureStore; guest mode. *Exit:* session survives app kill; works in the dev build.
-**Phase 5 · Home & Discovery Feed** — `feat/phase-05-home` — greeting, trending (GeoDB+Unsplash via expo-image), rails, FlashList, skeletons, MMKV-cached offline cold start. *Exit:* 60 fps scroll; airplane-mode feed.
+**Phase 4 · Auth & Profile** — `feat/phase-04-auth` — Google Sign-In (`@react-native-google-signin/google-signin`) — **first EAS development-build milestone** (Expo Go can't run it); session in SecureStore; guest mode. _Exit:_ session survives app kill; works in the dev build.
+**Phase 5 · Home & Discovery Feed** — `feat/phase-05-home` — greeting, trending (GeoDB+Unsplash via expo-image), rails, FlashList, skeletons, MMKV-cached offline cold start. _Exit:_ 60 fps scroll; airplane-mode feed.
 **Phase 6 · Search** — `feat/phase-06-search` — debounced GeoDB search, filters in bottom sheet, MMKV history, rate-limit-aware UX (1 req/s free tier).
 **Phase 7 · Destination Details** — `feat/phase-07-destination` — parallax hero, weather/time/currency snapshots, Overpass POIs, independent section degradation, favorite toggle, share deep link.
 
 ### Arc C — Core Travel Tools (8–12)
 
 **Phase 8 · Weather** — full feature: hourly/7-day, UV, AQI, animated sunrise arc (SVG), TTL cache + offline fallback.
-**Phase 9 · Maps & Nearby** — react-native-maps via config plugin (dev build), expo-location permission flow with denial fallback, Overpass markers + clustering, themed map styles, saved locations. *Exit:* 200+ markers smooth; denial path usable.
+**Phase 9 · Maps & Nearby** — react-native-maps via config plugin (dev build), expo-location permission flow with denial fallback, Overpass markers + clustering, themed map styles, saved locations. _Exit:_ 200+ markers smooth; denial path usable.
 **Phase 10 · Currency** — live rates, favorite pairs, offline-cached with staleness banner — flagship offline-first showcase.
 **Phase 11 · Flights** — OpenSky search/track, live map position, status timeline, polling with rate-limit respect, honest empty states.
-**Phase 12 · Trip Planner** — offline-first crown: trips, drag-reorder itineraries (Gesture Handler + Reanimated), budget, packing checklist, notes; RHF+Zod; 100% local via repository interface; versioned schema. *Exit:* full lifecycle in airplane mode.
+**Phase 12 · Trip Planner** — offline-first crown: trips, drag-reorder itineraries (Gesture Handler + Reanimated), budget, packing checklist, notes; RHF+Zod; 100% local via repository interface; versioned schema. _Exit:_ full lifecycle in airplane mode.
 
 ### Arc D — Retention & Polish (13–15)
 
@@ -167,7 +167,7 @@ Redux Toolkit + RTK Query with `axiosBaseQuery`, interceptors (timeout, retry/ba
 
 **Phase 16 · Observability, Testing & Performance** — Sentry (EAS source maps), Firebase Analytics + Crashlytics, error boundaries; Jest (repos/transforms/slices), RNTL (primitives + critical flows), Maestro golden path; release-build profiling, Hermes profile, startup budget < 2 s TTI.
 **Phase 17 · CI/CD & Play Store Launch** — EAS profiles (dev/preview/production), Play App Signing, versioning, adaptive icon/splash, store listing + Data Safety form, internal → closed → production rollout, **EAS Update OTA** strategy + rollback, GitHub Actions (PR checks + EAS build triggers).
-*Exit:* **Roava live on Google Play.**
+_Exit:_ **Roava live on Google Play.**
 
 ---
 
