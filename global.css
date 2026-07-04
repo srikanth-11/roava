@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Modern Explorer semantic tokens — RGB triplets so Tailwind can apply opacity.
+   Light = :root, Dark = .dark:root (controlled via NativeWind colorScheme). */
+@layer base {
+  :root {
+    --color-primary: 234 88 12; /* #EA580C adventure orange */
+    --color-on-primary: 255 255 255; /* #FFFFFF */
+    --color-secondary: 8 145 178; /* #0891B2 map teal */
+    --color-accent: 217 119 6; /* #D97706 */
+    --color-background: 255 247 237; /* #FFF7ED warm off-white */
+    --color-surface: 255 255 255; /* #FFFFFF */
+    --color-foreground: 15 23 42; /* #0F172A */
+    --color-muted-foreground: 100 116 139; /* #64748B */
+    --color-border: 252 234 225; /* #FCEAE1 */
+    --color-destructive: 220 38 38; /* #DC2626 */
+    --color-success: 22 163 74; /* #16A34A */
+  }
+
+  .dark:root {
+    --color-primary: 251 146 60; /* #FB923C */
+    --color-on-primary: 28 16 5; /* #1C1005 */
+    --color-secondary: 34 211 238; /* #22D3EE */
+    --color-accent: 251 191 36; /* #FBBF24 */
+    --color-background: 11 17 32; /* #0B1120 deep slate */
+    --color-surface: 30 41 59; /* #1E293B */
+    --color-foreground: 241 245 249; /* #F1F5F9 */
+    --color-muted-foreground: 148 163 184; /* #94A3B8 */
+    --color-border: 51 65 85; /* #334155 */
+    --color-destructive: 248 113 113; /* #F87171 */
+    --color-success: 74 222 128; /* #4ADE80 */
+  }
+}

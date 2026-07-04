@@ -127,6 +127,36 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 4 — Phase 1: Design System (2026-07-04, evening)
+
+### 4.1 a11y ESLint plugin vs ESLint 9
+
+- **Problem:** `eslint-plugin-react-native-a11y` peer-depends on ESLint ≤8; project uses ESLint 9 → `ERESOLVE` install failure.
+- **Diagnosis:** plugin's peer range is stale; its rules are plain rule objects that still run under ESLint 9.
+- **Solution:** `npm i -D eslint-plugin-react-native-a11y --legacy-peer-deps`, wired through `FlatCompat` (plugin is eslintrc-style, config is flat).
+- **Lesson:** RN ecosystem plugins often lag ESLint majors; `--legacy-peer-deps` + FlatCompat is the standard bridge — verify the rules actually execute.
+
+### 4.2 `has-accessibility-hint` rule noise
+
+- **Problem:** the plugin's `/all` preset demands an `accessibilityHint` wherever an `accessibilityLabel` exists — flagged every primitive.
+- **Solution:** disabled that one rule with a comment; labels are the requirement, hints are supplementary per RN a11y docs.
+- **Lesson:** adopt a11y presets critically — keep the rules that create access, drop the ones that create noise.
+
+### 4.3 React Compiler rejects Reanimated `.value` writes
+
+- **Problem:** `expo lint` errored "This value cannot be modified" on `scale.value = withSpring(...)` in Button.
+- **Diagnosis:** SDK 57 enables React Compiler; its immutability analysis forbids direct mutation of hook-returned objects. Reanimated added `.get()`/`.set()` precisely for this.
+- **Solution:** `scale.set(withSpring(...))` and `scale.get()` inside `useAnimatedStyle`.
+- **Lesson:** with React Compiler on, use Reanimated's accessor API — new-code standard from here on.
+
+### 4.4 MMKV can't run in Expo Go (design decision, pre-empted)
+
+- **Problem:** the plan said "theme persisted in MMKV," but react-native-mmkv needs custom native code — unavailable in Expo Go until the Phase 4 dev build.
+- **Solution:** `src/lib/storage.ts` defines an async `AppStorage` interface with an AsyncStorage implementation; MMKV slots in behind the same interface later with zero call-site changes.
+- **Lesson:** the repository/interface pattern isn't just for APIs — any swappable dependency (storage, analytics) earns an interface.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

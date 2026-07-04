@@ -37,6 +37,7 @@ Roava is a production-quality, offline-capable travel companion app (Expo SDK 57
 
 ## Current Status (update at every phase boundary)
 
-- **Phase 0 (Foundation): COMPLETE** — awaiting "Phase Approved". Branch `feat/phase-00-foundation` (unmerged, 6 commits). App verified in Expo Go on emulator + physical phone; hot reload proven; husky gates verified live.
-- **Next: Phase 1 — Design System & UI Kit** (NativeWind v4 tokens, Satoshi/Inter via expo-font, 10 primitives, light/dark theme store in MMKV, dev gallery screen). Fold `eslint-plugin-react-native-a11y` rules in here.
-- Backlog: commitlint graduation; permanent LAN fix for phone (Private network profile + `REACT_NATIVE_PACKAGER_HOSTNAME`).
+- **Phase 0 (Foundation): APPROVED & merged to main.**
+- **Phase 1 (Design System): COMPLETE** — awaiting "Phase Approved". Branch `feat/phase-01-design-system`. NativeWind v4 + tailwind 3.4 wired; Modern Explorer tokens as CSS vars (light/dark); Satoshi + Inter loaded splash-gated; theme store (light/dark/system) persisted via `AppStorage` interface (AsyncStorage now, MMKV at Phase 4); 10 primitives in `src/components/ui`; dev gallery at `/dev-gallery` verified in both themes on emulator. Reanimated uses `.get()/.set()` (React Compiler requirement).
+- **Next: Phase 2 — Navigation Shell & Onboarding** (5-tab shell, auth group, typed routes, deep linking `roava://`, animated tab bar, onboarding slides).
+- Backlog: commitlint graduation; permanent LAN fix for phone (Private network profile + `REACT_NATIVE_PACKAGER_HOSTNAME`); MMKV swap at Phase 4.
