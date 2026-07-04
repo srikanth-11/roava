@@ -246,6 +246,22 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 9 — Phase 6: Search (2026-07-05)
+
+### 9.1 Red screen: "Unable to resolve ./getKeyboardAnimationConfigs"
+
+- **Problem:** after installing `@gorhom/bottom-sheet`, Metro's red screen claimed a file inside the package didn't exist — but it was right there on disk.
+- **Diagnosis:** Metro was running when the package was installed; its file-map snapshot predated the install. "None of these files exist" from Metro often means _stale file map_, not missing files.
+- **Solution:** restart Metro with `--clear`.
+- **Lesson:** installing dependencies while Metro runs → restart Metro. Check the disk before believing "file doesn't exist."
+
+### 9.2 Tab screens keep their state (feature and footgun)
+
+- **Observation:** returning to the Search tab, the input still held the previous text and filter — React Navigation keeps tab screens mounted. Typed text appended to old text during automated testing ("Parispar").
+- **Lesson:** tab state persistence is usually desired UX (search survives tab hops), but design for it deliberately — and remember it when writing UI automation.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

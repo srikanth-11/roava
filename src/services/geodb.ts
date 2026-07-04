@@ -36,4 +36,23 @@ export async function fetchTopCities(limit = 10): Promise<GeoDbCityDto[]> {
   return res.data;
 }
 
+/** Prefix search. `signal` lets superseded keystrokes abort at the socket. */
+export async function searchCities(
+  namePrefix: string,
+  minPopulation: number,
+  signal?: AbortSignal,
+): Promise<GeoDbCityDto[]> {
+  const res = await getWithRetry<GeoDbListResponse>(client, '/cities', {
+    signal,
+    params: {
+      namePrefix,
+      sort: '-population',
+      types: 'CITY',
+      limit: 8,
+      ...(minPopulation > 0 ? { minPopulation } : {}),
+    },
+  });
+  return res.data;
+}
+
 export type { GeoDbCityDto };
