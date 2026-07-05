@@ -4,7 +4,7 @@ import { currencyRepository, type CurrencyRate } from '@/repositories/currency';
 import { destinationsRepository } from '@/repositories/destinations';
 import { poisRepository, type Poi } from '@/repositories/pois';
 import { searchRepository, type SearchFilters } from '@/repositories/search';
-import { weatherRepository, type WeatherSnapshot } from '@/repositories/weather';
+import { weatherRepository, type FullWeather, type WeatherSnapshot } from '@/repositories/weather';
 import { toAppError, type AppError } from '@/services/errors';
 import { trendingCached } from '@/store/cacheSlice';
 import type { Destination, DestinationDetail } from '@/types/destination';
@@ -55,6 +55,20 @@ export const api = createApi({
       // Current conditions don't move fast — 10 min saves the free quota.
       keepUnusedDataFor: 600,
     }),
+    getFullWeather: builder.query<
+      FullWeather,
+      { lat: number; lon: number; timezone: string | null }
+    >({
+      queryFn: async ({ lat, lon, timezone }) => {
+        try {
+          return { data: await weatherRepository.getFullWeather(lat, lon, timezone) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+      // Repository owns the 30-min disk TTL; RTK just prevents remount churn.
+      keepUnusedDataFor: 600,
+    }),
     getCurrencyRate: builder.query<CurrencyRate, { base: string; quote: string }>({
       queryFn: async ({ base, quote }) => {
         try {
@@ -96,6 +110,7 @@ export const api = createApi({
 export const {
   useGetCurrencyRateQuery,
   useGetDestinationByIdQuery,
+  useGetFullWeatherQuery,
   useGetNearbyPoisQuery,
   useGetTrendingQuery,
   useGetWeatherQuery,

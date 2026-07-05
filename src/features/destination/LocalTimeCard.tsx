@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui';
-import { SnapshotCard } from '@/features/destination/SnapshotCard';
+import { SnapshotCard } from '@/components/shared/SnapshotCard';
 
 interface LocalClock {
   time: string;

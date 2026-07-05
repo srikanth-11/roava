@@ -25,10 +25,10 @@
 
 ## Tasks
 
-- [ ] Task 1: API recon with the real key (forecast, air_pollution, Open-Meteo UV) — lock the UV decision; extend `openweather.ts` service + DTOs
-- [ ] Task 2: Repository — `getFullWeather` composition (allSettled, per-source degradation), daily aggregation in destination tz, TTL cache + stale-if-error; RTK endpoint; mock parity
-- [ ] Task 3: Weather screen — route + params, current header, hourly rail, daily list, AQI tile, stale banner; every tile owns loading/error states
-- [ ] Task 4: Sunrise arc — SVG semicircle + animated sun position from sunrise/sunset in local tz; day/night handling (before sunrise / after sunset states)
-- [ ] Task 5: Verify — live city + airplane-mode stale-serve + keyless mock run; both themes; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: API recon with the real key (forecast, air_pollution, Open-Meteo UV) — UV locked: Open-Meteo; `openweather.ts` + `openmeteo.ts` services
+- [x] Task 2: Repository — `getFullWeather` composition (allSettled, per-source degradation), daily aggregation in destination tz, TTL cache + stale-if-error; RTK endpoint; mock parity
+- [x] Task 3: Weather screen — route + params, current header, hourly rail, daily list, AQI/UV tiles, stale banner (scroll bug caught by driving the UI, JOURNEY 11.3)
+- [x] Task 4: Sunrise arc — SVG semicircle + animated sun position; day/night parking; lazy-useState clock snapshot (React Compiler purity, JOURNEY 11.2)
+- [x] Task 5: Verify — live Mumbai + airplane-mode disk-cache serve via param deep link; JOURNEY; commit; debrief (stale banner logic-only; dark theme → Phase 15); **wait for "Phase Approved"**
 
 **Exit criteria:** weather screen loads from the Phase 7 card in < 1 perceived s (cache-warm); airplane mode serves the saved forecast with honest staleness; each tile (current/hourly/daily/UV/AQI/arc) degrades independently; arc animates smoothly and parks correctly outside daylight hours; gates green.

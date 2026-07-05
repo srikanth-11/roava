@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui';
 import { currencyForCountry, HOME_CURRENCY } from '@/lib/currencies';
-import { SnapshotCard } from '@/features/destination/SnapshotCard';
+import { SnapshotCard } from '@/components/shared/SnapshotCard';
 import { useGetCurrencyRateQuery } from '@/store/api';
 
 function formatRate(rate: number): string {

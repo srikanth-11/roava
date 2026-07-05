@@ -1,31 +1,32 @@
-import {
-  Cloud,
-  CloudFog,
-  CloudLightning,
-  CloudRain,
-  CloudSnow,
-  Sun,
-  Thermometer,
-  type LucideIcon,
-} from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Thermometer } from 'lucide-react-native';
 import { View } from 'react-native';
 
+import { SnapshotCard } from '@/components/shared/SnapshotCard';
 import { Text } from '@/components/ui';
-import { SnapshotCard } from '@/features/destination/SnapshotCard';
-import type { WeatherKind } from '@/repositories/weather';
+import { kindIcon } from '@/features/weather/kindIcon';
+import { hapticLight } from '@/lib/haptics';
 import { useGetWeatherQuery } from '@/store/api';
 
-const kindIcon: Record<WeatherKind, LucideIcon> = {
-  thunder: CloudLightning,
-  rain: CloudRain,
-  snow: CloudSnow,
-  mist: CloudFog,
-  clear: Sun,
-  clouds: Cloud,
-};
+interface WeatherCardProps {
+  destinationId: string;
+  name: string;
+  lat: number;
+  lon: number;
+  timezone: string | null;
+}
 
-export function WeatherCard({ lat, lon }: { lat: number; lon: number }) {
+export function WeatherCard({ destinationId, name, lat, lon, timezone }: WeatherCardProps) {
   const { data, error, isLoading, refetch } = useGetWeatherQuery({ lat, lon });
+
+  const openForecast = () => {
+    hapticLight();
+    router.push({
+      pathname: '/destination/[id]/weather',
+      // Coords + tz ride along so the weather screen never refetches the city.
+      params: { id: destinationId, name, lat: String(lat), lon: String(lon), tz: timezone ?? '' },
+    });
+  };
 
   return (
     <SnapshotCard
@@ -34,6 +35,8 @@ export function WeatherCard({ lat, lon }: { lat: number; lon: number }) {
       state={isLoading ? 'loading' : error || !data ? 'error' : 'ready'}
       errorHint="Unavailable"
       onRetry={() => void refetch()}
+      onPress={openForecast}
+      accessibilityHint={`Opens the full forecast for ${name}`}
     >
       {data ? (
         <View className="gap-0.5">

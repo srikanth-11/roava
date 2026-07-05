@@ -336,6 +336,40 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 11 — Phase 8: Weather (2026-07-05, night)
+
+### 11.1 The free tier has no daily forecast — design around it
+
+- **Problem:** the plan said "hourly/7-day," but OpenWeather's daily endpoint (One Call 3.0) requires a billing-backed subscription; UV likewise.
+- **Solution:** `/data/2.5/forecast` (free, 3-hourly × 5 days) aggregated client-side into daily min/max in the destination's timezone — with a truncated last day labeled "so far" instead of pretending to be complete. UV from **Open-Meteo**, a second keyless provider, rather than a credit-card gate.
+- **Lesson:** design around what the tier actually serves, not what the docs advertise. A second free provider often beats upgrading the first. And honest partial data ("so far") beats silently wrong aggregates.
+
+### 11.2 React Compiler forbids `Date.now()` in render
+
+- **Problem:** `expo lint` errored "Cannot call impure function during render" — three times in SunArc (sun-position math needs the current time).
+- **Solution:** snapshot the clock once via lazy state: `const [now] = useState(() => Date.now())` — initializers may be impure; render must not be. Same family as JOURNEY 4.3's `.get()/.set()` rule; LocalTimeCard had already established the pattern.
+- **Lesson:** under the React Compiler, render purity is a compile-time contract. Time-dependent UI takes a snapshot (or a ticking state), never a live read.
+
+### 11.3 The screen that rendered perfectly but didn't scroll
+
+- **Problem:** the weather screen looked flawless — and the AQI/UV tiles below the fold were unreachable. A swipe did nothing; two identical screenshots proved it.
+- **Diagnosis:** `Screen` defaults `scroll={false}`; the content simply overflowed a static View.
+- **Solution:** `<Screen scroll>`.
+- **Lesson:** "renders correctly" and "is usable" are different claims — only _driving_ the UI (scroll, tap, navigate) catches the second kind. No typecheck can see a missing scroll container.
+
+### 11.4 Nesting a route under `[id]` (and a Windows git trap)
+
+- **Problem:** `destination/[id].tsx` can't have children; the weather route needs `destination/[id]/weather`.
+- **Solution:** restructure to `destination/[id]/index.tsx` + `weather.tsx` — URLs unchanged. Windows trap: `git mv "src/app/destination/[id].tsx" …` fails because git treats `[id]` as a pathspec wildcard — `git --literal-pathspecs mv` is the escape. New route files → Metro `--clear` (9.1 rule held).
+- **Lesson:** file→directory route conversion is free in expo-router; brackets in paths need `--literal-pathspecs` for every git file operation.
+
+### 11.5 Param-carrying routes are free deep-link targets
+
+- **Insight:** the weather screen takes coords/tz/name as query params (to avoid refetching the city). That made `roava://destination/56521/weather?lat=…&lon=…` a working deep link for free — which is exactly how the offline test forced the repository path (different RTK cache key, same 3-decimal disk cache key) and proved the whole screen serves from AppStorage in airplane mode.
+- **Lesson:** designing screens to ride on params instead of hidden state makes them deep-linkable and independently testable as a side effect.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

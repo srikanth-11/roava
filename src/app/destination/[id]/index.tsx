@@ -124,7 +124,13 @@ export default function DestinationDetail() {
 
           {/* Snapshot row — three cards, three providers, three independent fates. */}
           <View className="flex-row gap-3">
-            <WeatherCard lat={data.latitude} lon={data.longitude} />
+            <WeatherCard
+              destinationId={data.id}
+              name={data.name}
+              lat={data.latitude}
+              lon={data.longitude}
+              timezone={data.timezone}
+            />
             <LocalTimeCard timezone={data.timezone} />
             <CurrencyCard countryCode={data.countryCode} />
           </View>
