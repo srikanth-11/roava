@@ -5,10 +5,17 @@ import { destinationsRepository } from '@/repositories/destinations';
 import { flightsRepository, type Flight } from '@/repositories/flights';
 import { poisRepository, type Poi } from '@/repositories/pois';
 import { searchRepository, type SearchFilters } from '@/repositories/search';
+import {
+  applyTripCommand,
+  tripsRepository,
+  type CreateTripInput,
+  type TripCommand,
+} from '@/repositories/trips';
 import { weatherRepository, type FullWeather, type WeatherSnapshot } from '@/repositories/weather';
 import { toAppError, type AppError } from '@/services/errors';
 import { trendingCached } from '@/store/cacheSlice';
 import type { Destination, DestinationDetail } from '@/types/destination';
+import type { Trip } from '@/types/trip';
 
 /**
  * Endpoints call repositories via queryFn — RTK Query owns caching/lifecycle,
@@ -18,7 +25,7 @@ import type { Destination, DestinationDetail } from '@/types/destination';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fakeBaseQuery<AppError>(),
-  tagTypes: ['Trending'],
+  tagTypes: ['Trending', 'Trips'],
   endpoints: (builder) => ({
     searchDestinations: builder.query<Destination[], { query: string } & SearchFilters>({
       // `signal` aborts superseded requests at the socket when the arg changes.
@@ -134,6 +141,57 @@ export const api = createApi({
       },
       keepUnusedDataFor: 600,
     }),
+    getTrips: builder.query<Trip[], void>({
+      providesTags: ['Trips'],
+      queryFn: async () => {
+        try {
+          return { data: await tripsRepository.getTrips() };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    getTrip: builder.query<Trip | null, string>({
+      providesTags: (_result, _error, id) => [{ type: 'Trips', id }],
+      queryFn: async (id) => {
+        try {
+          return { data: await tripsRepository.getTrip(id) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    createTrip: builder.mutation<Trip, CreateTripInput>({
+      invalidatesTags: ['Trips'],
+      queryFn: async (input) => {
+        try {
+          return { data: await tripsRepository.createTrip(input) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    deleteTrip: builder.mutation<null, string>({
+      invalidatesTags: (_r, _e, id) => ['Trips', { type: 'Trips', id }],
+      queryFn: async (id) => {
+        try {
+          await tripsRepository.deleteTrip(id);
+          return { data: null };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    updateTrip: builder.mutation<Trip, { tripId: string; command: TripCommand }>({
+      invalidatesTags: (_r, _e, { tripId }) => ['Trips', { type: 'Trips', id: tripId }],
+      queryFn: async ({ tripId, command }) => {
+        try {
+          return { data: await applyTripCommand(tripId, command) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
     getTrending: builder.query<Destination[], void>({
       providesTags: ['Trending'],
       queryFn: async (_arg, { dispatch }) => {
@@ -152,6 +210,8 @@ export const api = createApi({
 });
 
 export const {
+  useCreateTripMutation,
+  useDeleteTripMutation,
   useGetCurrencyRateQuery,
   useGetDestinationByIdQuery,
   useGetFlightStateQuery,
@@ -160,7 +220,10 @@ export const {
   useGetNearbyPoisQuery,
   useGetRateTableQuery,
   useGetTrendingQuery,
+  useGetTripQuery,
+  useGetTripsQuery,
   useGetWeatherQuery,
   useSearchDestinationsQuery,
   useSearchFlightsQuery,
+  useUpdateTripMutation,
 } = api;

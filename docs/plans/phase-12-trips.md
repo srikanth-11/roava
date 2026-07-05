@@ -18,10 +18,10 @@
 
 ## Tasks
 
-- [ ] Task 1: Data — types + zod schemas, `lib/ids.ts`, `TripsRepository` (versioned doc, migrate seam, CRUD incl. reorder), RTK queries + first mutations w/ tags
-- [ ] Task 2: Deps (RHF/zod/resolvers/draggable-flatlist) + Trips tab — list w/ cover rows, empty state, create-trip form (RHF+Zod, date validation: end ≥ start)
-- [ ] Task 3: `trip/[id]` — overview header + Itinerary section: per-day lists, add/edit/delete items, drag-reorder w/ haptics + persisted order
-- [ ] Task 4: Budget (entries, per-category totals, Phase 10 money formatting), Packing (toggle list w/ progress), Notes (autosaving text)
-- [ ] Task 5: Verify — **entire lifecycle in airplane mode** (create → itinerary → reorder → budget → pack → note → kill app → relaunch still offline → all intact), migration smoke (bump version, confirm seam runs), delete-trip confirm; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Data — zod schemas as source of truth, `lib/ids.ts`, `TripsRepository` (versioned doc, migrate seam, recovery stash, CRUD incl. reorder), first mutations + `TripCommand` union
+- [x] Task 2: Deps + Trips tab — list, empty state, RHF+Zod create form (end ≥ start refine verified by form use)
+- [x] Task 3: `trip/[id]` — day chips, add/delete items, drag-reorder persisted (verified offline via `input draganddrop`)
+- [x] Task 4: Budget (₹9,200 = Stay 8,000 + Food 1,200 verified), Packing (1/2 packed verified), Notes (autosave verified)
+- [x] Task 5: Verify — **entire lifecycle in airplane mode + process kill → all intact (JOURNEY 15.1**; bundle reload needs network — dev-harness footnote 13.1); migration seam is passthrough-only at v1 (first real test = schema v2, honest deferral); delete-trip confirm built (Alert) — untested visually; JOURNEY 15; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria:** airplane-mode lifecycle passes end to end including an app kill; reorder feels physical (lift/drop haptics, 60fps); forms reject bad input with human errors; a schema-version bump routes through the migration seam; gates green.

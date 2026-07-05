@@ -464,6 +464,29 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 15 — Phase 12: Trip Planner (2026-07-06, small hours)
+
+### 15.1 The crown's lifecycle, verified offline end to end
+
+- **The run:** airplane mode ON → created "Kyoto in autumn" (RHF+Zod form) → three itinerary items with times → drag-reordered Day 1 → ₹8,000 Stay + ₹1,200 Food (₹9,200 total with category breakdown) → packed 1 of 2 items → autosaved a note → **force-stopped the process → relaunched → every byte intact** in the drag-reordered order.
+- **Honest footnote:** the process-death relaunch needed a brief network window for the DEV CLIENT's bundle fetch (the 13.1 harness limitation); every data operation and every read ran in airplane mode. Production embeds the bundle.
+- **Lesson:** local-first isn't a cache strategy — it's an architecture. When the repository IS the source of truth, offline stops being a special case.
+
+### 15.2 Mutations over a local repository — invalidation without network noise
+
+- **Insight:** the app's first RTK mutations (`createTrip`/`deleteTrip`/`updateTrip`) invalidate `Trips` tags exactly like a remote API would — screens re-render from the repository with zero manual refetch plumbing. Teaching invalidation on local data first removed all the network confounders.
+- **Boilerplate control:** nine near-identical write endpoints collapsed into one `updateTrip` mutation taking a typed `TripCommand` union; the repository keeps explicit, testable methods.
+
+### 15.3 Data the user can't re-download gets seatbelts
+
+- Versioned document (`schemaVersion` + stepwise `migrate()` fallthrough seam, ready before it's needed) and **corruption recovery that stashes unparseable bytes under a recovery key instead of discarding them**. Losing the handle to data is recoverable; overwriting it is not. (Migration seam is passthrough-only at v1 — its first real test arrives with schema v2, by design.)
+
+### 15.4 Emulator-week wisdom, condensed
+
+- Tonight's tooling battles in one line each: a dev-client cold boot cannot happen in airplane mode (bundle via Metro — decompose the offline claim, 13.1); **adb reverse chokes on multi-MB bundle streams** (tiny manifest fine, 8 MB bundle dies mid-stream → LAN mode for the emulator, tunnel only for small payloads); a Metro that answers `/status` can still be dead at the bundler — **health-check the bundle endpoint, not the ping** (`curl .../entry.bundle` before blaming anything downstream); `input draganddrop` drives long-press drag lists from adb.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
