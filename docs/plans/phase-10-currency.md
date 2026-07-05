@@ -16,9 +16,9 @@
 
 ## Tasks
 
-- [ ] Task 1: Data — `getRateTable(base)` w/ TTL + stale-if-error; `CURRENCY_META`; `currencySlice` (favorite pairs + last pair) wired into store/persistence; RTK endpoint
-- [ ] Task 2: Components — AmountInput, CurrencyPickerSheet (searchable), RateResult (big number + inverse caption), StalenessBanner
-- [ ] Task 3: `/currency` screen — converter (amount, from/to, swap), favorite pairs rail (star/save/tap-to-load), staleness states; Home tool card entry
-- [ ] Task 4: Verify — live conversion; pair favoriting + persistence across restart; **airplane-mode cold start converts from cached tables with honest staleness** (the showcase); both directions of swap; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Data — `getRateTable(base)` w/ TTL + stale-if-error; `CURRENCY_META` (55 currencies); `currencySlice` persisted; RTK endpoint
+- [x] Task 2: Components — CurrencyPickerSheet (searchable, verified filtering "jap"→JPY), RateResult (Intl money + inverse + age), staleness states
+- [x] Task 3: `/currency` screen — converter, swap, star/save pairs, saved-pairs rail; Home tool card entry; Metro --clear for the route
+- [x] Task 4: Verify — live (100 USD→₹9,531; INR→JPY ¥169.23 instant from cache); persistence across restart; **zero-network disk serving + airplane saved-pair conversion (JOURNEY 13.1 — cold-boot-offline is a dev-harness impossibility, decomposed honestly)**; JOURNEY; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria:** offline cold start converts any previously-cached pair and says how old the rate is; favorite pairs survive restart; swap + picker feel instant (no refetch when the table is cached); gates green.

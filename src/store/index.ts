@@ -3,6 +3,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { api } from '@/store/api';
 import { authSlice } from '@/store/authSlice';
 import { cacheSlice } from '@/store/cacheSlice';
+import { currencySlice } from '@/store/currencySlice';
 import { favoritesSlice } from '@/store/favoritesSlice';
 import { loadPersistedState, persistenceListener } from '@/store/persistence';
 
@@ -11,6 +12,7 @@ const rootReducer = combineReducers({
   cache: cacheSlice.reducer,
   auth: authSlice.reducer,
   favorites: favoritesSlice.reducer,
+  currency: currencySlice.reducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

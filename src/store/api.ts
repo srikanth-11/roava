@@ -1,6 +1,6 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 
-import { currencyRepository, type CurrencyRate } from '@/repositories/currency';
+import { currencyRepository, type CurrencyRate, type RateTable } from '@/repositories/currency';
 import { destinationsRepository } from '@/repositories/destinations';
 import { poisRepository, type Poi } from '@/repositories/pois';
 import { searchRepository, type SearchFilters } from '@/repositories/search';
@@ -80,6 +80,16 @@ export const api = createApi({
       // Repository already TTL-caches on disk; RTK just avoids re-entry churn.
       keepUnusedDataFor: 3600,
     }),
+    getRateTable: builder.query<RateTable, string>({
+      queryFn: async (base) => {
+        try {
+          return { data: await currencyRepository.getRateTable(base) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+      keepUnusedDataFor: 3600,
+    }),
     getNearbyPois: builder.query<Poi[], { lat: number; lon: number }>({
       queryFn: async ({ lat, lon }) => {
         try {
@@ -123,6 +133,7 @@ export const {
   useGetFullWeatherQuery,
   useGetMapPoisQuery,
   useGetNearbyPoisQuery,
+  useGetRateTableQuery,
   useGetTrendingQuery,
   useGetWeatherQuery,
   useSearchDestinationsQuery,

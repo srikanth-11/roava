@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
-import { CloudOff, Compass, Sparkles } from 'lucide-react-native';
-import { RefreshControl, View } from 'react-native';
+import { Banknote, ChevronRight, CloudOff, Compass, Sparkles } from 'lucide-react-native';
+import { Pressable, RefreshControl, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
 
@@ -65,6 +65,22 @@ function HomeHeader({ rail, showStale }: { rail: Destination[]; showStale: boole
         </View>
         <Button label="Search" size="sm" onPress={() => router.push('/search')} />
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Open the currency converter"
+        onPress={() => router.push('/currency')}
+        className="mx-4 flex-row items-center gap-3 rounded-lg border border-border bg-surface p-4 active:opacity-90"
+      >
+        <Icon icon={Banknote} color="primary" />
+        <View className="flex-1">
+          <Text variant="label">Currency converter</Text>
+          <Text variant="caption" color="muted">
+            Live rates that keep working offline.
+          </Text>
+        </View>
+        <Icon icon={ChevronRight} size={16} color="muted" />
+      </Pressable>
 
       <Text variant="h3" className="px-4">
         Explore more

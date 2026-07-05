@@ -406,6 +406,37 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 13 — Phase 10: Currency (2026-07-05, night)
+
+### 13.1 The offline showcase, proven in its strongest form
+
+- **The claim:** a traveler with no connection still gets a conversion, plus the truth about its age.
+- **The proof, decomposed:**
+  1. **Zero-network disk serving:** on a fresh cold boot (network AVAILABLE), the converter rendered "rates from 17 min ago" with **zero er-api requests in the log** — the repository's 12 h TTL served MMKV disk cache and never touched the wire. Stronger than an offline test: the network was there and deliberately unused.
+  2. **Airplane conversion:** with radios off, tapping a saved pair converted from the cached table under the OfflineBanner — "rates from 18 min ago."
+  3. **Persistence:** last pair and saved pairs rehydrated across force-stop (currencySlice through the whitelist).
+- **Honest limitation:** a true _cold boot_ in airplane mode is impossible in the dev harness — the dev client fetches its bundle from Metro, and the manifest's bundle URL rides the LAN IP. Production builds embed the bundle, so the cold path there reduces to (1)+(3), both proven.
+- **Lesson:** "works offline" decomposes into cache persistence, cache serving, and staleness honesty — each provable separately even when the harness can't fake the whole journey.
+
+### 13.2 Whole-table caching beats per-pair caching
+
+- **Insight:** er-api returns ~160 quotes per base in one response. Caching the TABLE (per base) instead of the PAIR means one fetch makes every quote for that base available offline — picker changes and swaps are instant and free.
+- **Cost check:** a table is ~4 KB JSON — MMKV shrugs.
+- **Lesson:** cache at the API's natural response granularity, not the UI's consumption granularity.
+
+### 13.3 One-boot native-module registration glitch (observed, resolved)
+
+- **Problem:** after many Fast Refreshes + an airplane-mode ANR recovery, one app boot threw `TurboModuleRegistry.getEnforcing: 'MLRNCameraModule' could not be found` at the map route's import — with expo-router warning "missing the required default export" as the downstream symptom (the throwing module exports nothing).
+- **Diagnosis:** the binary was correct (install timestamp = the Phase 9 build; maps had verified on it). A fresh process registered the module fine; the glitch never recurred.
+- **Lesson:** a "module not found" that contradicts a verified binary is a boot-state problem, not a build problem — restart the process before rebuilding anything. And a router's "missing default export" warning can mean "the module threw during import," not "you forgot to export."
+
+### 13.4 Emulator IME toolbar eats taps
+
+- **Problem:** the first tap on a picker row did nothing — the emulator's on-screen IME toolbar overlaid the list edge and consumed the touch.
+- **Lesson (automation):** after `adb shell input text`, the IME may leave chrome on screen; tap once to dismiss or aim clear of the keyboard's bounding strip. Same family as 9.2's "tab state persists" automation gotcha.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
