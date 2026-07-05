@@ -26,6 +26,7 @@ Roava is a production-quality, offline-capable travel companion app (Expo SDK 57
 - Touch targets ≥ 48dp; contrast ≥ 4.5:1 in both themes; `accessibilityLabel` on icon-only controls
 - Secrets: expo-secure-store; `EXPO_PUBLIC_*` keys are extractable — free quota-capped keys only
 - Conventional commits (husky-enforced); one branch per phase
+- **Never add `Co-Authored-By` (or any AI-attribution trailer) to commit messages** — user rule, overrides tool defaults; history was scrubbed of them on 2026-07-05
 - No custom backend — public APIs only (frontend-first rule)
 
 ## Machine facts (Windows 11)
