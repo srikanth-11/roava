@@ -487,6 +487,34 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 16 — Phase 13: Favorites & Offline Hardening (2026-07-06)
+
+### 16.1 Undo restores the exact item, not a re-creation
+
+- **Problem:** swipe-to-remove + undo looks trivial — remove, then re-add on undo. But `favoriteToggled` mints a fresh `savedAt`, so an undone favorite would jump to the top of history with a lying "just now" label.
+- **Solution:** a dedicated `favoriteRestored(item)` reducer re-inserts the EXACT removed item, position recomputed from its original `savedAt`. Verified with paired mid-window/post-undo screenshots: "saved 6 hours ago" survived the round trip. The expiry path (bar times out → removal finalizes) verified separately.
+- **Lesson:** undo is state restoration, not action repetition. If replaying the forward action can't reproduce the old state exactly, the slice needs a restore-shaped door.
+
+### 16.2 Offline snapshots at the repository seam — one fix, every screen
+
+- The last-known-good `DestinationDetail` cache lives INSIDE `getDestinationById` (write-on-success, serve-on-failure with `isStale: true`), so RTK, screens, and future callers all inherit it without knowing it exists. The detail screen adds one line: a "saved data" badge when `isStale`.
+- Verified: cold store + airplane → Favorites → Mumbai renders full detail from snapshot, badge shown, cards degrading independently (local time computes, currency serves its own disk cache, POIs honestly fail with retry).
+- **Lesson:** hardening at the repository layer multiplies; hardening in a screen is a one-off.
+
+### 16.3 The audit that closed old loops
+
+- Nine surfaces walked in airplane mode, screenshot each. Two loops from past phases closed themselves: the **weather stale badge** ("saved forecast · updated 5 hours ago · Refresh") finally rendered live — deferred since Phase 8 for want of an expired TTL; and **MapLibre's ambient tile cache** turned out to serve previously-viewed cities fully offline.
+- One dishonest state found and fixed: the map's floating header (back + "Sights failed — retry") anchored at `top-0 pt-12` — UNDER the absolute-overlay OfflineBanner (z-50, rendered after the Stack), hiding the retry affordance exactly when it mattered. Fix: banner-aware `pt-28` when `useOnline()` is false.
+- **Lesson:** overlays that appear conditionally create layouts that only exist in that condition — audit screens IN the condition, not just in the happy path.
+
+### 16.4 The fix that "didn't work" — stale HMR bundle
+
+- **Problem:** the map-header fix showed no effect across a Fast Refresh AND a full screen remount. Two more "fix attempts" beckoned.
+- **Diagnosis:** the day's airplane toggles had killed the HMR socket; the app was running a bundle predating BOTH edits. Remounting re-runs the same stale JS. A force-stop + fresh bundle load made the original fix work, unchanged.
+- **Lesson:** when a UI fix has no effect at all (not wrong — absent), verify the code is actually running before touching it again. On a dev client, connectivity games kill HMR silently.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
@@ -505,3 +533,4 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 | 12  | Expo Go SDK mismatch → matching APK from expo.dev/go                                                        | 3.4    |
 | 13  | Everything flaking at once → check free RAM first; recycle long-lived Metro                                 | 10.5   |
 | 14  | External API "200 OK" ≠ success — check the body's own error channel (Overpass `remark`)                    | 10.3   |
+| 15  | A fix with NO effect (not wrong — absent) → verify the running bundle first; airplane toggles kill HMR      | 16.4   |

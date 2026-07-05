@@ -34,10 +34,24 @@ export const favoritesSlice = createSlice({
         state.items.unshift({ ...action.payload, savedAt: Date.now() });
       }
     },
+    /**
+     * Undo support: re-insert the EXACT removed item — `favoriteToggled`
+     * would mint a fresh savedAt and jump it to the top of history.
+     * Position is recomputed from savedAt (items sort most-recent-first).
+     */
+    favoriteRestored(state, action: PayloadAction<FavoriteItem>) {
+      if (state.items.some((f) => f.id === action.payload.id)) return;
+      const index = state.items.findIndex((f) => f.savedAt < action.payload.savedAt);
+      if (index === -1) {
+        state.items.push(action.payload);
+      } else {
+        state.items.splice(index, 0, action.payload);
+      }
+    },
   },
 });
 
-export const { favoriteToggled } = favoritesSlice.actions;
+export const { favoriteRestored, favoriteToggled } = favoritesSlice.actions;
 
 export const selectIsFavorite = (state: { favorites: FavoritesState }, id: string): boolean =>
   state.favorites.items.some((f) => f.id === id);

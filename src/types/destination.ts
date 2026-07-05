@@ -26,4 +26,6 @@ export interface DestinationDetail {
   timezone: string | null;
   imageUrl: string | null;
   photoCredit: string | null;
+  /** True when served from the last-known-good offline snapshot. */
+  isStale?: boolean;
 }

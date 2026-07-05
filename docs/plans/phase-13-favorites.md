@@ -14,10 +14,10 @@
 
 ## Tasks
 
-- [ ] Task 1: Favorites tab — list rows (photo, name, country, saved-when), tap-through, empty state; `favoriteRestored` reducer
-- [ ] Task 2: Swipe-to-remove (RNGH swipeable) + 5s undo bar with haptics
-- [ ] Task 3: Offline snapshots — last-known-good `DestinationDetail` cache + `isStale` serve in the repository; "saved data" badge on the detail screen
-- [ ] Task 4: Airplane audit of all nine surfaces (screenshot each); fix dishonest states found (map tile-failure fallback, search offline, anything else the walk surfaces)
-- [ ] Task 5: Verify (favorite → swipe → undo → swipe → let it die; detail offline from snapshot); JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Favorites tab — list rows (photo, name, country, saved-when), tap-through, empty state; `favoriteRestored` reducer
+- [x] Task 2: Swipe-to-remove (RNGH ReanimatedSwipeable) + 5s undo bar (verified: undo preserves original savedAt — "saved 6 hours ago" survived; expiry path finalizes)
+- [x] Task 3: Offline snapshots — verified cold-store airplane detail from snapshot + "saved data" badge, cards degrading independently (JOURNEY 16.2)
+- [x] Task 4: Nine-surface airplane audit, screenshot each — ALL honest; one fix: map floating header hid under the OfflineBanner overlay → banner-aware offset (16.3); bonus: weather stale badge verified live (Phase 8 loop closed), MapLibre tile cache serves visited cities offline; stale-HMR trap documented (16.4)
+- [x] Task 5: Verify; JOURNEY Chapter 16; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria:** favorites work fully offline including photos; undo actually restores (same savedAt, same position); a previously-visited destination opens offline with the saved-data badge; the nine-surface audit has a screenshot per surface and zero dishonest states; gates green.

@@ -19,6 +19,7 @@ export interface DestinationsRepository {
 /* ------------------------------------------------------------------ */
 
 const IMAGE_CACHE_PREFIX = 'roava.image-cache.';
+const DEST_SNAPSHOT_PREFIX = 'roava.dest-snapshot.';
 
 async function getCachedPhoto(cityId: string): Promise<CityPhoto | null> {
   const raw = await storage.getString(`${IMAGE_CACHE_PREFIX}${cityId}`);
@@ -66,24 +67,41 @@ export class LiveDestinationsRepository implements DestinationsRepository {
   }
 
   async getDestinationById(id: string): Promise<DestinationDetail> {
-    const city = await fetchCityById(id);
-    // Same cache key as the feed — a city opened from Home costs zero extra
-    // Unsplash requests; `heroUrl` upgrades the resolution when available.
-    const photo = await getPhotoWithCache(String(city.id), city.city);
-    return {
-      id: String(city.id),
-      name: city.city,
-      country: city.country,
-      countryCode: city.countryCode,
-      region: city.region,
-      latitude: city.latitude,
-      longitude: city.longitude,
-      population: city.population > 0 ? city.population : null,
-      // GeoDB separates IANA zones with "__" ("Europe__Paris") — Intl needs "/".
-      timezone: city.timezone ? city.timezone.replace(/__/g, '/') : null,
-      imageUrl: photo?.heroUrl ?? photo?.url ?? null,
-      photoCredit: photo?.credit ?? null,
-    };
+    const snapshotKey = `${DEST_SNAPSHOT_PREFIX}${id}`;
+    try {
+      const city = await fetchCityById(id);
+      // Same cache key as the feed — a city opened from Home costs zero extra
+      // Unsplash requests; `heroUrl` upgrades the resolution when available.
+      const photo = await getPhotoWithCache(String(city.id), city.city);
+      const detail: DestinationDetail = {
+        id: String(city.id),
+        name: city.city,
+        country: city.country,
+        countryCode: city.countryCode,
+        region: city.region,
+        latitude: city.latitude,
+        longitude: city.longitude,
+        population: city.population > 0 ? city.population : null,
+        // GeoDB separates IANA zones with "__" ("Europe__Paris") — Intl needs "/".
+        timezone: city.timezone ? city.timezone.replace(/__/g, '/') : null,
+        imageUrl: photo?.heroUrl ?? photo?.url ?? null,
+        photoCredit: photo?.credit ?? null,
+      };
+      // Last-known-good snapshot (no TTL — last-good IS the point): any city
+      // ever visited opens offline, with its stale-ness declared.
+      await storage.setString(snapshotKey, JSON.stringify(detail));
+      return detail;
+    } catch (error) {
+      const raw = await storage.getString(snapshotKey);
+      if (raw) {
+        try {
+          return { ...(JSON.parse(raw) as DestinationDetail), isStale: true };
+        } catch {
+          // fall through to the original error
+        }
+      }
+      throw error;
+    }
   }
 }
 

@@ -113,6 +113,7 @@ export default function DestinationDetail() {
 
         <View className="gap-6 px-4 pt-4">
           <View className="flex-row flex-wrap gap-2">
+            {data.isStale ? <Badge label="saved data" variant="warning" /> : null}
             {data.population ? (
               <Badge
                 label={`${(data.population / 1_000_000).toFixed(1)}M people`}

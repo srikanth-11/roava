@@ -16,6 +16,7 @@ import { Linking, Pressable, View } from 'react-native';
 
 import { Badge, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
 import { PoiRow } from '@/features/destination/PoiSection';
+import { useOnline } from '@/hooks/useOnline';
 import { poisToFeatureCollection } from '@/features/map/geojson';
 import { MAP_STYLES, OSM_ATTRIBUTION } from '@/lib/mapStyles';
 import { palette } from '@/lib/palette';
@@ -35,6 +36,7 @@ export default function DestinationMap() {
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme ?? 'light';
   const colors = palette[scheme];
+  const online = useOnline();
 
   const { data, error, isLoading, refetch } = useGetMapPoisQuery(
     { lat, lon },
@@ -164,8 +166,14 @@ export default function DestinationMap() {
           </MapLibreMap>
         )}
 
-        {/* Top overlay: back + title + query state */}
-        <View className="absolute inset-x-0 top-0 flex-row items-center gap-3 px-4 pt-12">
+        {/* Top overlay: back + title + query state. The OfflineBanner owns the
+            top edge when offline — drop the header below it or its controls
+            (incl. the POI retry chip) become unreachable exactly when needed. */}
+        <View
+          className={`absolute inset-x-0 top-0 flex-row items-center gap-3 px-4 ${
+            online ? 'pt-12' : 'pt-28'
+          }`}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
