@@ -1,4 +1,4 @@
-import type { Destination } from '@/types/destination';
+import type { Destination, DestinationDetail } from '@/types/destination';
 
 export const mockDestinations: Destination[] = [
   {
@@ -47,3 +47,72 @@ export const mockDestinations: Destination[] = [
     population: null,
   },
 ];
+
+/** Real coordinates + zones so the detail screen behaves truthfully in mock mode. */
+export const mockDestinationDetails: Record<string, DestinationDetail> = {
+  paris: {
+    id: 'paris',
+    name: 'Paris',
+    country: 'France',
+    countryCode: 'FR',
+    region: 'Île-de-France',
+    latitude: 48.8567,
+    longitude: 2.3522,
+    population: 2_103_778,
+    timezone: 'Europe/Paris',
+    imageUrl: null,
+    photoCredit: null,
+  },
+  tokyo: {
+    id: 'tokyo',
+    name: 'Tokyo',
+    country: 'Japan',
+    countryCode: 'JP',
+    region: 'Tokyo',
+    latitude: 35.6895,
+    longitude: 139.6917,
+    population: 13_960_236,
+    timezone: 'Asia/Tokyo',
+    imageUrl: null,
+    photoCredit: null,
+  },
+  lisbon: {
+    id: 'lisbon',
+    name: 'Lisbon',
+    country: 'Portugal',
+    countryCode: 'PT',
+    region: 'Lisboa',
+    latitude: 38.7223,
+    longitude: -9.1393,
+    population: 544_851,
+    timezone: 'Europe/Lisbon',
+    imageUrl: null,
+    photoCredit: null,
+  },
+  marrakech: {
+    id: 'marrakech',
+    name: 'Marrakech',
+    country: 'Morocco',
+    countryCode: 'MA',
+    region: 'Marrakesh-Safi',
+    latitude: 31.6295,
+    longitude: -7.9811,
+    population: 928_850,
+    timezone: 'Africa/Casablanca',
+    imageUrl: null,
+    photoCredit: null,
+  },
+  queenstown: {
+    id: 'queenstown',
+    name: 'Queenstown',
+    country: 'New Zealand',
+    countryCode: 'NZ',
+    region: 'Otago',
+    latitude: -45.0312,
+    longitude: 168.6626,
+    population: 15_850,
+    timezone: 'Pacific/Auckland',
+    imageUrl: null,
+    photoCredit: null,
+  },
+};

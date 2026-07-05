@@ -10,3 +10,20 @@ export interface Destination {
   photoCredit: string | null;
   population: number | null;
 }
+
+/** Everything the detail screen needs — coords power weather/POIs, timezone powers local time. */
+export interface DestinationDetail {
+  id: string;
+  name: string;
+  country: string;
+  /** ISO-3166 alpha-2 — key into the currency map. */
+  countryCode: string;
+  region: string | null;
+  latitude: number;
+  longitude: number;
+  population: number | null;
+  /** IANA zone ("Europe/Paris") — GeoDB's "__" separator already normalized. */
+  timezone: string | null;
+  imageUrl: string | null;
+  photoCredit: string | null;
+}

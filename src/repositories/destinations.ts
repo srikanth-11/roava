@@ -1,9 +1,9 @@
 import { storage } from '@/lib/storage';
-import { mockDestinations } from '@/mocks/destinations';
+import { mockDestinationDetails, mockDestinations } from '@/mocks/destinations';
 import { toAppError } from '@/services/errors';
-import { fetchTopCities } from '@/services/geodb';
+import { fetchCityById, fetchTopCities } from '@/services/geodb';
 import { searchCityPhoto, type CityPhoto } from '@/services/unsplash';
-import type { Destination } from '@/types/destination';
+import type { Destination, DestinationDetail } from '@/types/destination';
 
 /**
  * Data-access contract for destinations. Screens and RTK Query know ONLY this
@@ -11,6 +11,7 @@ import type { Destination } from '@/types/destination';
  */
 export interface DestinationsRepository {
   getTrending(): Promise<Destination[]>;
+  getDestinationById(id: string): Promise<DestinationDetail>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +64,27 @@ export class LiveDestinationsRepository implements DestinationsRepository {
       }),
     );
   }
+
+  async getDestinationById(id: string): Promise<DestinationDetail> {
+    const city = await fetchCityById(id);
+    // Same cache key as the feed — a city opened from Home costs zero extra
+    // Unsplash requests; `heroUrl` upgrades the resolution when available.
+    const photo = await getPhotoWithCache(String(city.id), city.city);
+    return {
+      id: String(city.id),
+      name: city.city,
+      country: city.country,
+      countryCode: city.countryCode,
+      region: city.region,
+      latitude: city.latitude,
+      longitude: city.longitude,
+      population: city.population > 0 ? city.population : null,
+      // GeoDB separates IANA zones with "__" ("Europe__Paris") — Intl needs "/".
+      timezone: city.timezone ? city.timezone.replace(/__/g, '/') : null,
+      imageUrl: photo?.heroUrl ?? photo?.url ?? null,
+      photoCredit: photo?.credit ?? null,
+    };
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,6 +124,19 @@ export class MockDestinationsRepository implements DestinationsRepository {
       return [];
     }
     return mockDestinations;
+  }
+
+  async getDestinationById(id: string): Promise<DestinationDetail> {
+    await sleep(600);
+    const detail = mockDestinationDetails[id];
+    if (!detail) {
+      throw toAppError({
+        isAxiosError: true,
+        message: `No mock destination with id "${id}"`,
+        response: { status: 404 },
+      });
+    }
+    return detail;
   }
 }
 

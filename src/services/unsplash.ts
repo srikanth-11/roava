@@ -23,7 +23,10 @@ const client = createHttpClient({
 });
 
 export interface CityPhoto {
+  /** `small` (400w) — cards and rows. */
   url: string;
+  /** `regular` (1080w) — full-width heroes. Optional: entries cached before Phase 7 lack it. */
+  heroUrl?: string;
   credit: string;
 }
 
@@ -38,5 +41,5 @@ export async function searchCityPhoto(query: string): Promise<CityPhoto | null> 
   });
   const photo = res.results[0];
   if (!photo) return null;
-  return { url: photo.urls.small, credit: photo.user.name };
+  return { url: photo.urls.small, heroUrl: photo.urls.regular, credit: photo.user.name };
 }

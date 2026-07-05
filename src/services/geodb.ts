@@ -36,6 +36,22 @@ export async function fetchTopCities(limit = 10): Promise<GeoDbCityDto[]> {
   return res.data;
 }
 
+interface GeoDbCityDetailDto extends GeoDbCityDto {
+  region: string | null;
+  /** GeoDB ships IANA zones with "__" as separator — e.g. "Europe__Paris". */
+  timezone: string | null;
+}
+
+interface GeoDbDetailResponse {
+  data: GeoDbCityDetailDto;
+}
+
+/** Full record for one city — detail screens need coords + timezone. */
+export async function fetchCityById(id: string): Promise<GeoDbCityDetailDto> {
+  const res = await getWithRetry<GeoDbDetailResponse>(client, `/cities/${id}`);
+  return res.data;
+}
+
 /** Prefix search. `signal` lets superseded keystrokes abort at the socket. */
 export async function searchCities(
   namePrefix: string,
@@ -55,4 +71,4 @@ export async function searchCities(
   return res.data;
 }
 
-export type { GeoDbCityDto };
+export type { GeoDbCityDetailDto, GeoDbCityDto };

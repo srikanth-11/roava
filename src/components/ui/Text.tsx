@@ -2,7 +2,8 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 export type TextVariant = 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'body-sm' | 'label' | 'caption';
 
-export type TextColor = 'default' | 'muted' | 'primary' | 'on-primary' | 'destructive' | 'success';
+export type TextColor =
+  'default' | 'muted' | 'primary' | 'on-primary' | 'on-image' | 'destructive' | 'success';
 
 const variantClasses: Record<TextVariant, string> = {
   display: 'font-heading text-4xl leading-tight',
@@ -20,6 +21,7 @@ const colorClasses: Record<TextColor, string> = {
   muted: 'text-muted-foreground',
   primary: 'text-primary',
   'on-primary': 'text-on-primary',
+  'on-image': 'text-on-image',
   destructive: 'text-destructive',
   success: 'text-success',
 };

@@ -291,6 +291,51 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 10 — Phase 7: Destination Details (2026-07-05, evening)
+
+### 10.1 GeoDB timezones aren't IANA — `Europe__Paris`
+
+- **Problem (caught pre-code):** the 8.1 discipline — test the endpoint before writing the mapper — showed GeoDB's city detail `timezone` field uses `__` separators (`Europe__Paris`). `Intl.DateTimeFormat` would have thrown "invalid time zone" at runtime.
+- **Solution:** normalize in the repository mapper: `city.timezone.replace(/__/g, '/')`.
+- **Lesson:** test the exact fields you're about to consume, not just that the endpoint answers. Formats lie in the details.
+
+### 10.2 Overpass 406s anonymous clients
+
+- **Problem (caught pre-code):** the first Overpass probe returned `406 Not Acceptable`.
+- **Diagnosis:** the shared public instance rejects requests without an identifying User-Agent.
+- **Solution:** `User-Agent: Roava/0.1 (Expo learning project)` on the axios client.
+- **Lesson:** keyless shared APIs enforce citizenship instead of quotas — identify yourself.
+
+### 10.3 Overpass hides fatal errors inside HTTP 200
+
+- **Problem:** Paris rendered the honest-looking "No sights mapped yet" empty state — but a manual query had found 8 POIs there hours earlier.
+- **Diagnosis:** replicated the app's _exact_ query in PowerShell: HTTP **200**, `elements: []`, and the truth buried in a field — `remark: "runtime error: Query timed out in 'query' at line 1 after 14 seconds."` The `leisure=park` union leg scans too much geometry in hyper-dense OSM areas: Paris blew the 10 s budget while Mumbai passed. A city-dependent silent failure wearing an empty state as a disguise.
+- **Solution:** (1) treat a `remark` containing "error" as a thrown failure → the section shows ErrorState + retry, never a false "nothing here"; (2) drop the park selectors — tourism-only completes in ~2 s everywhere tested; parks return with Phase 9's maps.
+- **Lesson:** "200 OK" is a transport statement, not a truth statement. Some APIs report failure in-band — find and check the body's own error channel. And in a union query, one heavy leg times out the whole thing.
+
+### 10.4 Second persisted slice broke TypeScript inference
+
+- **Problem:** adding `favorites` to the persistence WHITELIST made `result[slice] = JSON.parse(raw)` fail: TS demanded the value satisfy `CacheState & FavoritesState` (both at once).
+- **Diagnosis:** with a union-typed loop variable, TS can't correlate WHICH key goes with WHICH value type — so it intersects them.
+- **Solution:** a generic helper, `loadSlice<K extends PersistedSlice>(slice: K, …)`, re-ties key to value per call.
+- **Lesson:** loop variables are unions; generics restore the key↔value correlation. This appears the moment any keyed registry grows past one entry.
+
+### 10.5 The verification environment fought back (RAM starvation)
+
+- **Symptoms, stacked:** dev client "Failed to download remote update"; emulator Chrome spinning forever; two emulator launches dying silently; System-UI ANRs; `adb install` hanging; package service "Broken pipe"; a cold boot that came up **without the app installed**.
+- **Root cause:** **1.3 GB free of 15.8 GB host RAM.** Metro had bloated to 2.6 GB over hours of bundling; qemu holds ~2 GB. Every "bug" above was this one resource squeeze wearing different masks.
+- **Solution:** recycle Metro (fresh instance is ~10× smaller), cold-boot the emulator, reinstall from the x86_64 APK pulled earlier (9.5's "useless for the phone" pull became the emulator's recovery installer).
+- **Lessons:** when _everything_ flakes at once, check host resources before debugging any single failure. Long-lived Metro processes bloat — recycle between sessions. Keep a pulled APK as reinstall insurance. And `adb shell pm path android` is the real "package manager ready" probe — `sys.boot_completed=1` lies during late boot.
+
+### 10.6 Verified behaviors worth recording
+
+- **Deep-link anchor works:** cold `roava://destination/144571` → Paris; back → **Home**, not exit. Bonus live proof: Home's trending query fired _beneath_ Paris simultaneously, tripped GeoDB's 1 req/s (429), and `getWithRetry`'s backoff recovered it on the retry.
+- **Offline audit:** uncached city in airplane mode → the one designed full-screen ErrorState ("You're offline") with retry; a cached city renders **completely** — expo-image disk cache (hero), RTK cache (weather, POIs), client computation (local time), and no-fetch logic (INR same-as-home) all cooperating.
+- **Favorites survive force-stop** (AppStorage rehydration through the persistence whitelist).
+- **Share sheet** carries `Check out Mumbai, India on Roava → roava://destination/56521`.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
@@ -307,3 +352,5 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 | 10  | Weird emulator state → cold boot (`-no-snapshot-load`)                                                      | 3.2    |
 | 11  | Phone can't reach Metro → `--tunnel`; long-term: Private network profile + `REACT_NATIVE_PACKAGER_HOSTNAME` | 3.3    |
 | 12  | Expo Go SDK mismatch → matching APK from expo.dev/go                                                        | 3.4    |
+| 13  | Everything flaking at once → check free RAM first; recycle long-lived Metro                                 | 10.5   |
+| 14  | External API "200 OK" ≠ success — check the body's own error channel (Overpass `remark`)                    | 10.3   |

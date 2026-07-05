@@ -17,6 +17,8 @@ module.exports = {
         border: 'rgb(var(--color-border) / <alpha-value>)',
         destructive: 'rgb(var(--color-destructive) / <alpha-value>)',
         success: 'rgb(var(--color-success) / <alpha-value>)',
+        'on-image': 'rgb(var(--color-on-image) / <alpha-value>)',
+        scrim: 'rgb(var(--color-scrim) / <alpha-value>)',
       },
       borderRadius: {
         sm: '8px',

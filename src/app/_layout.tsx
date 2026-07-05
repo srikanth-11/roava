@@ -24,6 +24,13 @@ import { restoreSession } from '@/store/authSlice';
 // fallback-font text on first frame.
 void SplashScreen.preventAutoHideAsync();
 
+// Anchor for deep links: a cold `roava://destination/x` builds the stack with
+// (tabs) beneath the target, so "back" lands on Home instead of exiting the
+// app (closes the JOURNEY 7.3 observation).
+export const unstable_settings = {
+  initialRouteName: '(tabs)',
+};
+
 function ThemedApp() {
   const { resolved } = useTheme();
 

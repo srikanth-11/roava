@@ -2,6 +2,7 @@ import { createListenerMiddleware } from '@reduxjs/toolkit';
 
 import { storage } from '@/lib/storage';
 import type { CacheState } from '@/store/cacheSlice';
+import type { FavoritesState } from '@/store/favoritesSlice';
 
 /**
  * Hand-rolled selective persistence: whitelisted slices are written to
@@ -9,27 +10,33 @@ import type { CacheState } from '@/store/cacheSlice';
  * created. Same job redux-persist does — visible, typed, and engine-agnostic.
  */
 const STORAGE_PREFIX = 'roava.state.';
-const WHITELIST = ['cache'] as const;
+const WHITELIST = ['cache', 'favorites'] as const;
 type PersistedSlice = (typeof WHITELIST)[number];
 
 interface PersistedShape {
   cache: CacheState;
+  favorites: FavoritesState;
+}
+
+// Generic K correlates key and value — a plain loop variable is a union, and
+// TS would demand the value satisfy EVERY slice type at once.
+async function loadSlice<K extends PersistedSlice>(
+  slice: K,
+  into: Partial<PersistedShape>,
+): Promise<void> {
+  try {
+    const raw = await storage.getString(`${STORAGE_PREFIX}${slice}`);
+    if (raw) {
+      into[slice] = JSON.parse(raw) as PersistedShape[K];
+    }
+  } catch {
+    // Corrupt persisted state is discarded, never fatal.
+  }
 }
 
 export async function loadPersistedState(): Promise<Partial<PersistedShape>> {
   const result: Partial<PersistedShape> = {};
-  await Promise.all(
-    WHITELIST.map(async (slice) => {
-      try {
-        const raw = await storage.getString(`${STORAGE_PREFIX}${slice}`);
-        if (raw) {
-          result[slice] = JSON.parse(raw) as PersistedShape[PersistedSlice];
-        }
-      } catch {
-        // Corrupt persisted state is discarded, never fatal.
-      }
-    }),
-  );
+  await Promise.all(WHITELIST.map((slice) => loadSlice(slice, result)));
   return result;
 }
 

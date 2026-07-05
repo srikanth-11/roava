@@ -21,10 +21,10 @@
 
 ## Tasks
 
-- [ ] Task 1: Plumbing — `geodb.getCityById`, repository method (live + mock), RTK Query endpoint; `initialRouteName` fix; verify deep link → back lands on Home
-- [ ] Task 2: Hero — parallax header w/ cached Unsplash photo + attribution, back overlay, skeleton state; favorite heart (wired in Task 5)
-- [ ] Task 3: Snapshot row — weather card (key-gated, graceful "unavailable"), local-time card, currency card w/ cached rate + staleness; each degrades independently
-- [ ] Task 4: POIs — Overpass service + repository + endpoint, category chips, POI rows, empty/error states, rate-limit courtesy
-- [ ] Task 5: Favorites slice + persisted optimistic toggle; share button; airplane-mode audit of every section; both themes; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Plumbing — `geodb.getCityById`, repository method (live + mock), RTK Query endpoint; `initialRouteName` fix; verify deep link → back lands on Home
+- [x] Task 2: Hero — parallax header w/ cached Unsplash photo + attribution, back overlay, skeleton state; favorite heart (wired in Task 5)
+- [x] Task 3: Snapshot row — weather card (key-gated, graceful "unavailable"), local-time card, currency card w/ cached rate + staleness; each degrades independently
+- [x] Task 4: POIs — Overpass service + repository + endpoint, category chips, POI rows, empty/error states, rate-limit courtesy (park selectors dropped — dense-city timeout, JOURNEY 10.3)
+- [x] Task 5: Favorites slice + persisted optimistic toggle; share button; airplane-mode audit; JOURNEY; commit; debrief (dark-mode visual pass deferred to Phase 15 — explicit-light pref active); **wait for "Phase Approved"**
 
 **Exit criteria:** cold deep link backs out to Home; killing any single API (wrong key, airplane mode, Overpass down) degrades only its own section; favorite survives restart; parallax stays 60 fps; contrast + touch-target audit passes both themes; gates green.

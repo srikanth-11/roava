@@ -16,6 +16,7 @@ export const palette = {
     border: 'rgb(252 234 225)',
     destructive: 'rgb(220 38 38)',
     success: 'rgb(22 163 74)',
+    onImage: 'rgb(255 255 255)',
   },
   dark: {
     primary: 'rgb(251 146 60)',
@@ -28,6 +29,7 @@ export const palette = {
     border: 'rgb(51 65 85)',
     destructive: 'rgb(248 113 113)',
     success: 'rgb(74 222 128)',
+    onImage: 'rgb(255 255 255)',
   },
 } as const;
 
