@@ -22,9 +22,9 @@
 
 ## Tasks
 
-- [ ] Task 1: Recon (anonymous `/states/all` shape/size/credits headers + `icao24` filter) → `opensky.ts` service (array→DTO mapping), `FlightsRepository` (snapshot memory-cache + search + single-flight), RTK endpoints
-- [ ] Task 2: `/flights` search screen — debounced callsign input, result rows, honest empty state; Home tools row (currency + flights cards)
-- [ ] Task 3: Flight detail — MapLibre mini-map w/ heading marker, stat tiles, derived status timeline, 15 s focus-gated polling, signal-lost state
-- [ ] Task 4: Verify — live search (thousands airborne at any hour), track a flight across ≥2 poll cycles (position visibly moves), leave/return focus gating in logs, bogus-callsign empty state, 429 handling if the quota cooperates; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Recon — global call = 4 credits even filtered (area billing!); 12,479 aircraft, 1.6 MB; callsigns pad with trailing spaces; `opensky.ts` + `FlightsRepository` + endpoints
+- [x] Task 2: `/flights` search — debounced input, result rows, honest empty state; Home tools row
+- [x] Task 3: Flight detail — mini-map, stat tiles + rotated heading arrow, phase chips, **30 s** focus-gated polling (credit math revised the plan's 15 s), signal-lost state; **render-loop bug → repository-owned moving bbox (JOURNEY 14.2)**
+- [x] Task 4: Verify — 25 live UAL flights; UAL2137 moved Casper→Riverton across polls; 0 requests in 65 s off-screen; ZZZQX → coverage-honest empty state; JOURNEY 14; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria:** a real flight tracks with visible position updates and a truthful status; polling provably stops off-screen; a nonsense callsign gets honesty, not an error; total credits spent during verification stays comfortably double-digit; gates green.

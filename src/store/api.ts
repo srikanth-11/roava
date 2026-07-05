@@ -2,6 +2,7 @@ import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { currencyRepository, type CurrencyRate, type RateTable } from '@/repositories/currency';
 import { destinationsRepository } from '@/repositories/destinations';
+import { flightsRepository, type Flight } from '@/repositories/flights';
 import { poisRepository, type Poi } from '@/repositories/pois';
 import { searchRepository, type SearchFilters } from '@/repositories/search';
 import { weatherRepository, type FullWeather, type WeatherSnapshot } from '@/repositories/weather';
@@ -80,6 +81,29 @@ export const api = createApi({
       // Repository already TTL-caches on disk; RTK just avoids re-entry churn.
       keepUnusedDataFor: 3600,
     }),
+    searchFlights: builder.query<{ flights: Flight[]; snapshotAge: number }, string>({
+      queryFn: async (query) => {
+        try {
+          return { data: await flightsRepository.searchByCallsign(query) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+      // The repository's 30s snapshot does the real caching; keep RTK short.
+      keepUnusedDataFor: 15,
+    }),
+    getFlightState: builder.query<Flight | null, { icao24: string; lat?: number; lon?: number }>({
+      queryFn: async ({ icao24, lat, lon }) => {
+        try {
+          const near = lat !== undefined && lon !== undefined ? { lat, lon } : undefined;
+          return { data: await flightsRepository.getFlight(icao24, near) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+      // Always live — polling owns freshness.
+      keepUnusedDataFor: 5,
+    }),
     getRateTable: builder.query<RateTable, string>({
       queryFn: async (base) => {
         try {
@@ -130,6 +154,7 @@ export const api = createApi({
 export const {
   useGetCurrencyRateQuery,
   useGetDestinationByIdQuery,
+  useGetFlightStateQuery,
   useGetFullWeatherQuery,
   useGetMapPoisQuery,
   useGetNearbyPoisQuery,
@@ -137,4 +162,5 @@ export const {
   useGetTrendingQuery,
   useGetWeatherQuery,
   useSearchDestinationsQuery,
+  useSearchFlightsQuery,
 } = api;

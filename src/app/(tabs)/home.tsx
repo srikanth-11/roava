@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
-import { Banknote, ChevronRight, CloudOff, Compass, Sparkles } from 'lucide-react-native';
+import { Banknote, CloudOff, Compass, Plane, Sparkles } from 'lucide-react-native';
 import { Pressable, RefreshControl, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useColorScheme } from 'nativewind';
@@ -66,21 +66,36 @@ function HomeHeader({ rail, showStale }: { rail: Destination[]; showStale: boole
         <Button label="Search" size="sm" onPress={() => router.push('/search')} />
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Open the currency converter"
-        onPress={() => router.push('/currency')}
-        className="mx-4 flex-row items-center gap-3 rounded-lg border border-border bg-surface p-4 active:opacity-90"
-      >
-        <Icon icon={Banknote} color="primary" />
-        <View className="flex-1">
-          <Text variant="label">Currency converter</Text>
-          <Text variant="caption" color="muted">
-            Live rates that keep working offline.
-          </Text>
-        </View>
-        <Icon icon={ChevronRight} size={16} color="muted" />
-      </Pressable>
+      <View className="mx-4 flex-row gap-3">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open the currency converter"
+          onPress={() => router.push('/currency')}
+          className="flex-1 gap-2 rounded-lg border border-border bg-surface p-4 active:opacity-90"
+        >
+          <Icon icon={Banknote} color="primary" />
+          <View>
+            <Text variant="label">Currency</Text>
+            <Text variant="caption" color="muted" numberOfLines={1}>
+              Rates that work offline
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Track live flights"
+          onPress={() => router.push('/flights')}
+          className="flex-1 gap-2 rounded-lg border border-border bg-surface p-4 active:opacity-90"
+        >
+          <Icon icon={Plane} color="primary" />
+          <View>
+            <Text variant="label">Flights</Text>
+            <Text variant="caption" color="muted" numberOfLines={1}>
+              Track aircraft live
+            </Text>
+          </View>
+        </Pressable>
+      </View>
 
       <Text variant="h3" className="px-4">
         Explore more

@@ -437,6 +437,33 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 14 — Phase 11: Flights (2026-07-05, late night)
+
+### 14.1 Credits are the constraint, not the data rate
+
+- **Recon finding:** OpenSky's anonymous tier bills by query AREA — a global call costs 4 credits even when `icao24`-filtered down to 166 bytes (measured via `X-Rate-Limit-Remaining`). The ~400/day budget, not the 10 s data resolution, dictates the design.
+- **Solution:** searches share one 30 s in-memory snapshot (4 credits buys every keystroke); tracking polls pass a ±1.5° bbox around the last fix (1 credit) at a 30 s interval — an hour of tracking ≈ 120 credits.
+- **Lesson:** read the rate-limit headers during recon and do the arithmetic BEFORE picking a polling interval. The plan said 15 s; the measured cost said 30.
+
+### 14.2 A moving value in an RTK query arg = a render loop
+
+- **Problem:** red screen "Too many re-renders" on the second poll. The tracked aircraft's position fed the bbox, the bbox lived in React state, and the state fed the RTK query arg — so every fix changed the cache key, churned the subscription, and looped render-phase adjustments.
+- **Solution:** the query arg is now STABLE (icao24 + the seed position from search params); the repository keeps a module-level `Map<icao24, lastPos>` and applies the moving bbox internally at fetch time. React state holds only what the UI renders.
+- **Lesson:** RTK Query args are cache identities — never put a value in one that changes as a RESULT of the query. State that exists to steer the next fetch belongs in the data layer, not in React.
+
+### 14.3 Memory cache vs disk cache is a semantics decision
+
+- **Design note, proven out:** flight positions get 30 s in MEMORY; currency tables get 12 h on DISK. Persisting live positions would serve confidently wrong data offline — worse than nothing. Cache duration AND medium follow the data's freshness semantics, not a house habit.
+
+### 14.4 Verified behaviors worth recording
+
+- **Search:** 25 live UAL flights from one snapshot, "positions 0s old", callsign trailing-space trim earning its keep.
+- **Tracking:** UAL2137 visibly crossed Wyoming between two 30 s polls (Casper → Riverton, ~50 km at 784 km/h heading 278° — the physics check out); "Cruising" chip derived from 0.0 m/s vertical rate; heading arrow icon rotated to match.
+- **Focus gating:** zero OpenSky requests in 65 s after leaving the tracker — polling provably stops off-screen.
+- **Honesty:** a bogus callsign gets "Not visible to the network" with the ADS-B coverage explanation, not an error.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
