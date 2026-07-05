@@ -260,6 +260,35 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 - **Observation:** returning to the Search tab, the input still held the previous text and filter — React Navigation keeps tab screens mounted. Typed text appended to old text during automated testing ("Parispar").
 - **Lesson:** tab state persistence is usually desired UX (search survives tab hops), but design for it deliberately — and remember it when writing UI automation.
 
+### 9.3 Permanent LAN fix applied (closes 3.3's backlog item)
+
+- **Context:** executed the permanent fix documented in 3.3 so the phone can reach Metro over LAN instead of `--tunnel`.
+- **Applied & verified (2026-07-05):**
+  1. Wi-Fi profile confirmed **Private** (`Get-NetConnectionProfile`). The node.exe **Block** firewall rules exist only on the Public profile; Private has "Node.js JavaScript Runtime" Allow rules.
+  2. `REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.3` set as a **user-level** env var (`[Environment]::SetEnvironmentVariable("REACT_NATIVE_PACKAGER_HOSTNAME","192.168.1.3","User")`) — matches the Wi-Fi adapter's DHCP IP.
+  3. End-to-end proof: a test Metro on port 8082 served a manifest with `hostUri: 192.168.1.3:8082` and all bundle/asset URLs on the real Wi-Fi IP (previously advertised the WSL adapter `172.27.160.1`).
+- **Caveats:**
+  - User env vars only reach **new** processes — restart the terminal (and Metro) before `npx expo start`; an already-running Metro keeps advertising the old IP.
+  - The IP is DHCP-assigned. If the router hands out a different address later, the var goes stale — update it, or reserve `192.168.1.3` for this PC in the router's DHCP settings.
+  - Residual risk: the Private Allow rules name `C:\Program Files\nodejs\node.exe`, but node actually runs from the resolved nvm path (`%APPDATA%\nvm\v24.18.0\node.exe`) — firewall rules match resolved paths, so they may not apply. If the phone still times out in LAN mode, add a port-scoped rule from an **elevated** PowerShell: `New-NetFirewallRule -DisplayName "Expo Metro (TCP 8081)" -Direction Inbound -Protocol TCP -LocalPort 8081 -Action Allow -Profile Private`.
+- **Bonus finding:** `C:\Program Files\nodejs` now symlinks to `%APPDATA%\nvm\v24.18.0` and plain `node --version` → 24.18.0 — the elevated `nvm use` happened at some point, so 1.2's per-session PATH workaround is obsolete.
+- **Lesson:** environment changes (network profile, env vars, firewall) only bind at process start — restart the process chain to pick them up. And when symlinks are involved, port-scoped firewall rules beat program-path rules.
+
+### 9.4 "Failed to download remote update" — again (the 9.3 caveat bites)
+
+- **Problem:** right after 9.3, the phone still failed with the classic 3.3 error.
+- **Diagnosis (evidence before theory):** port 8081 was still owned by the _same_ node PID started **before** the env var existed — and its manifest advertised `hostUri: 127.0.0.1:8081` (**localhost mode**, from the emulator's `expo run:android`/adb-reverse workflow, cf. 6.3). The phone was literally being told to download the app from itself. `adb devices` confirmed only the emulator attached — adb reverse makes localhost work there, masking the problem.
+- **Solution:** kill the stale Metro; relaunch plain `npx expo start` from a shell where `REACT_NATIVE_PACKAGER_HOSTNAME=192.168.1.3` is set → manifest re-queried, now `hostUri: 192.168.1.3:8081`. (Emulator still fine in LAN mode — it reaches the host's LAN IP via NAT, plus adb reverse remains.)
+- **Debug technique worth keeping:** ask the dev server what it's handing out — `Invoke-WebRequest http://localhost:8081 -Headers @{"expo-platform"="android"; "Accept"="application/expo+json"}` and read `hostUri` from the manifest. One request tells you exactly what URL every client will be given (in PS 5.1 decode `$r.Content` with `[Text.Encoding]::UTF8.GetString`).
+- **Lesson:** "env var set" ≠ "env var active." A server keeps the environment it was born with — check the _process start time_ against when you changed the environment. And a Metro that works on the emulator proves nothing about the phone: adb reverse and LAN are different transports.
+
+### 9.5 Phone scan → "Expo Go is closing" — the dev build never made it to the phone
+
+- **Problem:** with 9.4 fixed (QR advertising the right LAN IP), scanning on the phone made Expo Go flash open and immediately close.
+- **Diagnosis:** with `expo-dev-client` installed, `expo start` QRs encode `exp+roava://expo-development-client/?url=...`. Expo Go doesn't own that scheme — its scanner fires the intent and exits, and **no app on the phone could answer it**: `com.kasir.roava` was only ever installed on the _emulator_ (Phase 4). Expo Go couldn't run the project anyway — google-signin and nitro-modules are compiled-in native code since Phase 4. Bonus trap: pulling the emulator's installed APK as a shortcut failed — it contains **only x86_64** libs (`run:android` builds just the target device's ABI), useless on an arm64 phone.
+- **Solution:** one-time arm64 build, no cable needed: `cd android; .\gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a` (11m 35s — NDK/Gradle caches reused), then served `app-debug.apk` over LAN with a tiny node HTTP server for phone-browser download + sideload (same unknown-sources flow as 3.4).
+- **Lesson:** a dev-client QR is only useful if the dev client is installed _on that device_ — and per-device ABI builds mean "it runs on the emulator" ≠ "I have an APK for my phone." When handing builds around, check the `lib/` ABIs inside the APK before assuming portability.
+
 ---
 
 ## Running Tally — Windows RN Developer Survival Kit
