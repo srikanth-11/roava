@@ -54,13 +54,14 @@ export async function fetchNearbyPois(
   lat: number,
   lon: number,
   radiusM = 4000,
+  limit = 30,
 ): Promise<OverpassElement[]> {
   const around = `(around:${radiusM},${lat},${lon})`;
   const tourism = '["tourism"~"attraction|museum|viewpoint|gallery"]';
   // No park selector: `leisure=park` over a 4 km radius times out on dense
   // cities (Paris died at timeout:10 while Mumbai passed). Tourism-only
-  // completes in ~2 s everywhere tested. Parks return with Phase 9's maps.
-  const query = `[out:json][timeout:10];(node${tourism}${around};way${tourism}${around};);out center 30;`;
+  // completes in ~2 s everywhere tested — even at the map's limit of 200.
+  const query = `[out:json][timeout:10];(node${tourism}${around};way${tourism}${around};);out center ${limit};`;
 
   try {
     return (await runQuery(query)).elements;

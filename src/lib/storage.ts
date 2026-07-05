@@ -70,6 +70,33 @@ export const storage: AppStorage = created.storage;
 /** Which engine is live — surfaced in the dev tools screens. */
 export const storageEngine = created.engine;
 
+const MIGRATION_MARKER = 'roava.storage-migrated';
+
+/**
+ * One-time AsyncStorage → MMKV copy. The engine swap (mmkv@3, Phase 9) would
+ * otherwise orphan everything written during the AsyncStorage era — onboarding
+ * flags, favorites, caches (the exact reset JOURNEY 7.2 warned about).
+ * Call before the store rehydrates. Best-effort: a failed copy costs cached
+ * state, never a crash.
+ */
+export async function migrateLegacyStorage(): Promise<void> {
+  if (created.engine !== 'mmkv') return;
+  if ((await storage.getString(MIGRATION_MARKER)) !== null) return;
+  try {
+    const keys = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('roava.'));
+    for (const key of keys) {
+      const value = await AsyncStorage.getItem(key);
+      // Never clobber: anything MMKV already has is newer than the legacy copy.
+      if (value !== null && (await storage.getString(key)) === null) {
+        await storage.setString(key, value);
+      }
+    }
+  } catch {
+    // Fresh state beats a boot crash.
+  }
+  await storage.setString(MIGRATION_MARKER, String(Date.now()));
+}
+
 export const StorageKeys = {
   themeMode: 'roava.theme-mode',
   onboardingDone: 'roava.onboarding-done',

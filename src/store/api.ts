@@ -90,6 +90,16 @@ export const api = createApi({
       },
       keepUnusedDataFor: 600,
     }),
+    getMapPois: builder.query<Poi[], { lat: number; lon: number }>({
+      queryFn: async ({ lat, lon }) => {
+        try {
+          return { data: await poisRepository.getNearbyForMap(lat, lon) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+      keepUnusedDataFor: 600,
+    }),
     getTrending: builder.query<Destination[], void>({
       providesTags: ['Trending'],
       queryFn: async (_arg, { dispatch }) => {
@@ -111,6 +121,7 @@ export const {
   useGetCurrencyRateQuery,
   useGetDestinationByIdQuery,
   useGetFullWeatherQuery,
+  useGetMapPoisQuery,
   useGetNearbyPoisQuery,
   useGetTrendingQuery,
   useGetWeatherQuery,

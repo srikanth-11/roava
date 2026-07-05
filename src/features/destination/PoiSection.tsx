@@ -1,5 +1,7 @@
+import { router } from 'expo-router';
 import {
   Landmark,
+  Map as MapIcon,
   MapPinned,
   Mountain,
   Palette,
@@ -25,7 +27,7 @@ const CATEGORY_META: Record<PoiCategory, { label: string; singular: string; icon
 
 const CATEGORY_ORDER: PoiCategory[] = ['attraction', 'museum', 'viewpoint', 'gallery', 'park'];
 
-function PoiRow({ poi }: { poi: Poi }) {
+export function PoiRow({ poi }: { poi: Poi }) {
   const meta = CATEGORY_META[poi.category];
   return (
     <View className="flex-row items-center gap-3 rounded-lg border border-border bg-surface p-3">
@@ -48,7 +50,17 @@ function PoiRow({ poi }: { poi: Poi }) {
  * Nearby sights via Overpass. ONE fetch per city — the chips filter locally,
  * so tapping around costs zero extra requests to the shared instance.
  */
-export function PoiSection({ lat, lon, cityName }: { lat: number; lon: number; cityName: string }) {
+export function PoiSection({
+  destinationId,
+  lat,
+  lon,
+  cityName,
+}: {
+  destinationId: string;
+  lat: number;
+  lon: number;
+  cityName: string;
+}) {
   const { data, error, isLoading, refetch } = useGetNearbyPoisQuery({ lat, lon });
   const [category, setCategory] = useState<'all' | PoiCategory>('all');
 
@@ -56,9 +68,26 @@ export function PoiSection({ lat, lon, cityName }: { lat: number; lon: number; c
   const filtered =
     category === 'all' ? (data ?? []) : (data ?? []).filter((p) => p.category === category);
 
+  const openMap = () => {
+    router.push({
+      pathname: '/destination/[id]/map',
+      params: { id: destinationId, name: cityName, lat: String(lat), lon: String(lon) },
+    });
+  };
+
   return (
     <View className="gap-3">
-      <Text variant="h3">Things to see</Text>
+      <View className="flex-row items-center justify-between">
+        <Text variant="h3">Things to see</Text>
+        <Button
+          label="Map"
+          size="sm"
+          variant="outline"
+          icon={MapIcon}
+          onPress={openMap}
+          accessibilityHint={`Opens nearby sights around ${cityName} on a map`}
+        />
+      </View>
 
       {isLoading ? (
         <View className="gap-3">

@@ -25,10 +25,10 @@ Google Maps SDK needs a billing-backed Cloud account even at $0 — against the 
 
 ## Tasks
 
-- [ ] Task 1: Recon (OpenFreeMap styles + dark availability) + native prep — install @maplibre/maplibre-react-native + swap mmkv@3; `expo run:android` rebuild; verify MMKV registers (JOURNEY 7.2 closure) + AsyncStorage→MMKV boot migration
-- [ ] Task 2: Data — `Poi` gains coords; map-context Overpass variant (limit 200); GeoJSON mapping; style URL config per theme
-- [ ] Task 3: Map screen — route + params, MapLibre view + clustered ShapeSource + callouts, OSM attribution, list fallback, "Map" entry from PoiSection
-- [ ] Task 4: Location — permission flow, user puck, denial fallback (destination-centered + settings affordance); saved favorite pins where coords are cached
-- [ ] Task 5: Verify — 200+ markers smooth on emulator, cluster/zoom/callouts, denial path (adb revoke), themed map both schemes; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Recon (all 5 OpenFreeMap styles live incl. dark) + native prep — MapLibre + mmkv@3 + expo-location installed, nitro removed; 12m rebuild; **MMKV registered** + boot migration (JOURNEY 12.1)
+- [x] Task 2: Data — `Poi` gains coords; `getNearbyForMap` (6 km / 200); GeoJSON mapping; themed style URLs
+- [x] Task 3: Map screen — v11 API (`Map`/`GeoJSONSource`/`Layer`, JOURNEY 12.3), engine clustering + expansion-zoom taps, callouts, attribution, list fallback, "Map" entry from PoiSection
+- [x] Task 4: Location — permission flow verified BOTH ways (deny → banner + Settings; grant → banner clears); saved-pins seam deferred to Phase 13 (coords rarely cached)
+- [x] Task 5: Verify — Paris ~200 POIs clustered smooth; Mumbai cluster expansion + callout; deep links cold & warm; JOURNEY 12; commit; debrief (dark map → Phase 15); **wait for "Phase Approved"**
 
 **Exit criteria:** 200+ markers pan/zoom smoothly (clustered); permission-denied path fully usable; attribution rendered; MMKV actually registers (or the swap is reverted with the story documented); gates green.

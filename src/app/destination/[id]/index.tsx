@@ -135,7 +135,12 @@ export default function DestinationDetail() {
             <CurrencyCard countryCode={data.countryCode} />
           </View>
 
-          <PoiSection lat={data.latitude} lon={data.longitude} cityName={data.name} />
+          <PoiSection
+            destinationId={data.id}
+            lat={data.latitude}
+            lon={data.longitude}
+            cityName={data.name}
+          />
         </View>
       </Animated.ScrollView>
     </Screen>

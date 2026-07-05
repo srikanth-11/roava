@@ -16,6 +16,7 @@ import { Provider } from 'react-redux';
 
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { palette } from '@/lib/palette';
+import { migrateLegacyStorage } from '@/lib/storage';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 import { createAppStore, type AppStore } from '@/store';
 import { restoreSession } from '@/store/authSlice';
@@ -69,12 +70,15 @@ export default function RootLayout() {
 
   // Store creation is async: persisted slices rehydrate BEFORE first render,
   // so offline cold starts paint cached data immediately (no flash of empty).
-  // Session restore (SecureStore) kicks off immediately after.
+  // Legacy-storage migration runs first (one-time AsyncStorage → MMKV copy),
+  // then session restore (SecureStore) kicks off.
   useEffect(() => {
-    void createAppStore().then((s) => {
-      setStore(s);
-      void s.dispatch(restoreSession());
-    });
+    void migrateLegacyStorage()
+      .then(() => createAppStore())
+      .then((s) => {
+        setStore(s);
+        void s.dispatch(restoreSession());
+      });
   }, []);
 
   const ready = fontsLoaded && store !== null;

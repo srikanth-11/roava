@@ -370,6 +370,42 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 12 — Phase 9: Maps & Nearby (2026-07-05, late night)
+
+### 12.1 MMKV finally registers — JOURNEY 7.2 closed
+
+- **Problem (inherited):** react-native-mmkv v4 (Nitro architecture) compiled but never registered under SDK 57; AsyncStorage had carried the app since Phase 4.
+- **Solution:** swap to `react-native-mmkv@3` (TurboModule architecture) riding the Phase 9 rebuild. `storage.ts` needed ZERO code changes — the `MmkvLike` interface matched v3's API exactly. A one-time boot migration copies `roava.*` keys from AsyncStorage so nothing resets. Verified: zero "[storage] MMKV unavailable" warnings post-rebuild.
+- **Lesson:** when a native lib fails, check which _architecture generation_ it targets, not just the version. And an interface + fallback turns an engine swap into a boot-time detail — the Phase 3 investment paying out one more time.
+
+### 12.2 Google Maps needs a credit card — the OSM stack didn't
+
+- **Problem:** the plan assumed react-native-maps, which on Android means the Google Maps SDK — and Google Cloud requires billing details even at $0.
+- **Solution:** `@maplibre/maplibre-react-native` (open-source Mapbox fork) + **OpenFreeMap** hosted vector tiles: zero keys, zero cards, zero signup (styles probed: liberty/bright/positron/dark/fiord all live). Clustering is built into the engine. Bonus symmetry: the POIs come from OSM via Overpass and now render on OSM tiles.
+- **Lesson:** interrogate the "standard" choice's account requirements before adopting it. The open ecosystem often has the better-integrated answer.
+
+### 12.3 MapLibre v11 is a redesigned API — installed types are the truth
+
+- **Problem:** the first map screen draft used the API every tutorial shows (`MapView`, `ShapeSource`, `CircleLayer`, camelCase styles) — 10 type errors.
+- **Diagnosis:** v11 renamed the world: `Map`, `GeoJSONSource` (`data`, not `shape`), one unified `<Layer type="circle">` taking spec-style `paint`/`layout` (kebab-case), `initialViewState` on Camera, and a proper `getClusterExpansionZoom()` on the source ref.
+- **Solution:** read the package's own `.d.ts` files and rewrite against them; the typechecker became the API recon tool.
+- **Lesson:** for fast-moving native libs, `node_modules/**/*.d.ts` outranks every tutorial, blog, and memory. Typecheck a thin slice early — before writing 200 lines against a ghost API.
+
+### 12.4 Typed routes regenerate on the dev server's schedule
+
+- **Problem:** `router.push('/destination/[id]/map')` was a type error — the route existed on disk but not in the generated union.
+- **Diagnosis:** expo-router's route types (`.expo/types/router.d.ts`) regenerate when the dev server processes the route tree — a route added while Metro runs may not appear until a restart (which the new-route-file rule required anyway).
+- **Lesson:** a route-type error on a file you just created means "regenerate," not "rename." Generated artifacts have their own refresh cycles.
+
+### 12.5 Patterns that held under fire
+
+- **Cluster tap:** `getClusterExpansionZoom(cluster_id)` → `easeTo` — the engine tells you the exact zoom where the cluster unpacks (verified: Mumbai's "2" split cleanly).
+- **Permission state:** `pm grant` via adb reflects on the next screen mount — the denial banner vanished without a reinstall. Denial-as-first-class UX verified both ways.
+- **Paris at map scale:** tourism-only Overpass at 6 km/200 results stayed inside the 10-second budget even on the densest OSM city — the 10.3 park exclusion keeps paying rent. ~200 markers clustered smoothly (43/12/10/9-size bubbles).
+- **Param-carried routes (11.5):** the map screen deep-linked cold (Mumbai) and warm (Paris) with zero extra work.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
