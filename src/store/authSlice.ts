@@ -38,7 +38,13 @@ export const signIn = createAsyncThunk('auth/signIn', async (_, { rejectWithValu
 });
 
 export const signOut = createAsyncThunk('auth/signOut', async () => {
-  await authRepository.signOut();
+  try {
+    // Provider revocation is best-effort — a Google hiccup must never
+    // hold the LOCAL session hostage.
+    await authRepository.signOut();
+  } catch {
+    // continue: local sign-out is the guarantee
+  }
   await clearSession();
 });
 
@@ -68,6 +74,11 @@ export const authSlice = createSlice({
         state.errorMessage = (action.payload as string) ?? 'Sign-in failed. Please try again.';
       })
       .addCase(signOut.fulfilled, (state) => {
+        state.session = null;
+        state.status = 'signedOut';
+      })
+      // Defense-in-depth: even if SecureStore delete fails, the UI signs out.
+      .addCase(signOut.rejected, (state) => {
         state.session = null;
         state.status = 'signedOut';
       });

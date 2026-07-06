@@ -620,6 +620,13 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 - **Solution:** `Set-NetConnectionProfile … -NetworkCategory Private` (elevated, user-run) + env var updated to the new IP. In the end the phone transfer went via file copy anyway; the release APK **installed and ran standalone on the phone** — first cold boot with the embedded bundle, closing 13.1's harness limitation on real hardware.
 - **Lesson:** LAN dev setups are keyed to the network's identity, not just the machine. When the subnet changes, re-check the trio: IP-pinned env vars, firewall rule profiles, and the connection's Public/Private category.
 
+### 20.3 Sign-out that didn't — the first real-device Google bug
+
+- **Problem (user-reported, release APK on phone):** tapping Sign out navigated to the login page but the session survived — reopening the app restored it, "the data is still there."
+- **Diagnosis:** three stacked flaws only the REAL Google path could expose (mock's no-op signOut hid them through every emulator pass): ① `GoogleAuthRepository.signOut()` never called `ensureConfigured()`, so on any restored-session process the native module threw immediately; ② the thunk ran the provider call BEFORE `clearSession()`, so the throw skipped the local wipe and no `rejected` reducer existed; ③ the profile screen navigated without `unwrap()`, so the UI _looked_ signed out while Redux + SecureStore still held the session.
+- **Solution:** provider sign-out wrapped best-effort (`try/catch` → always `clearSession()`); `signOut.rejected` reducer clears state as defense-in-depth; `ensureConfigured()` added to the Google signOut path.
+- **Lesson:** local sign-out must never be hostage to a provider call — revoke remotely best-effort, clear locally always. And a mock whose failure paths are no-ops verifies the happy path only; the first real provider finds the rest.
+
 ---
 
 ## Running Tally — Windows RN Developer Survival Kit

@@ -46,6 +46,9 @@ export class GoogleAuthRepository implements AuthRepository {
   }
 
   async signOut(): Promise<void> {
+    // Sign-out can be the FIRST Google call of a process (session restored
+    // from SecureStore at boot) — configure before touching the module.
+    await this.ensureConfigured();
     const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
     await GoogleSignin.signOut();
   }
