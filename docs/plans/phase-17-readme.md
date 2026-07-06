@@ -13,9 +13,9 @@
 
 ## Tasks
 
-- [ ] Task 1: Screenshots — curate session captures into `docs/screenshots/`
-- [ ] Task 2: README rewrite
-- [ ] Task 3: JOURNEY chapter index + `docs/demo.md`
-- [ ] Task 4: Gates; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: 11 screenshots curated into `docs/screenshots/` (6.8 MB) — each candidate VERIFIED by eye first (caught three miscasts, incl. the 14.2 render-loop error screen posing as the flight tracker)
+- [x] Task 2: README rewritten — screenshots grid + offline receipts row, feature map, architecture diagram, API table, corrected run instructions (dev build, not the stale Expo Go copy)
+- [x] Task 3: JOURNEY 19-chapter index table; `docs/demo.md` five-minute script (airplane-mode party trick as the centerpiece)
+- [x] Task 4: Gates; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria:** README renders clean on GitHub (checked in markdown preview terms), screenshots referenced correctly, JOURNEY navigable, demo script complete; gates green.

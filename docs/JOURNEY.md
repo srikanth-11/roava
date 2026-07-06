@@ -4,6 +4,30 @@
 
 Format per entry: **Problem → Diagnosis → Solution → Lesson.**
 
+## Chapters
+
+| #   | Chapter                          | Highlights                                                      |
+| --- | -------------------------------- | --------------------------------------------------------------- |
+| 1   | The Bare React Native Era        | Node/JDK/emulator baptism; the bare→Expo pivot                  |
+| 2   | Expo Reboot                      | scaffold, robocopy trick, .env hygiene                          |
+| 3   | Phase 1 · Design System          | React Compiler vs Reanimated `.value`                           |
+| 4   | Phase 2 · Navigation Shell       | typed routes, tab bar animation                                 |
+| 5   | Phase 3 · Data Layer             | layering, AppError, persistence                                 |
+| 6   | Phase 4 · Auth & Dev Build       | dev client era begins; MMKV deferred (7.2)                      |
+| 7   | Phase 4½ · Native Modules        | MMKV/Nitro registration saga                                    |
+| 8   | Phase 5 · Home Feed              | live APIs, image cache, offline-first proof                     |
+| 9   | Phase 6 · Search + LAN saga      | debounce+abort; the 9.3 phone↔Metro fix                         |
+| 10  | Phase 7 · Destination Detail     | GeoDB `__` timezones; Overpass `remark` (10.3); RAM rule (10.5) |
+| 11  | Phase 8 · Weather                | free-tier aggregation; Date.now purity; param deep links        |
+| 12  | Phase 9 · Maps                   | Google→MapLibre pivot; v11 .d.ts truth (12.3); MMKV closed      |
+| 13  | Phase 10 · Currency              | whole-table caching (13.2); offline proof decomposition (13.1)  |
+| 14  | Phase 11 · Flights               | OpenSky credit math (14.1); RTK arg render loop (14.2)          |
+| 15  | Phase 12 · Trip Planner          | offline lifecycle incl. process kill; adb reverse limits (15.4) |
+| 16  | Phase 13 · Favorites & Hardening | undo-as-restoration; snapshot seam; stale-HMR trap (16.4)       |
+| 17  | Phase 14 · Settings              | constant→setting migration; compiler effect rule 3rd hit        |
+| 18  | Phase 15 · Polish                | the audit that found nothing; motion presets; StaleBadge        |
+| 19  | Phase 16 · Production Hardening  | ErrorBoundary per route; disposable android/ signing            |
+
 ---
 
 ## Chapter 1 — The Bare React Native Era (2026-07-04, morning)
