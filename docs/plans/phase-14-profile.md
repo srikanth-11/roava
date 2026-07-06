@@ -14,9 +14,19 @@
 
 ## Tasks
 
-- [ ] Task 1: `settingsSlice` (homeCurrency) + WHITELIST entry + migrate all `HOME_CURRENCY` consumers to the selector
-- [ ] Task 2: Profile tab — Account card (session identity, sign out) + Preferences section (theme segmented control, home-currency row → CurrencyPickerSheet reuse)
-- [ ] Task 3: Offline-data section (`getAllKeys()` on AppStorage, prefix counts, clear-with-confirm sparing user data) + About section (attributions, version)
-- [ ] Task 4: Verify — theme switch applies live + survives restart; home currency ripples (detail card, converter, new budget entry) + survives restart; cache clear drops caches but trips/favorites/session survive; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: `settingsSlice` (homeCurrency) + WHITELIST entry + all `HOME_CURRENCY` consumers migrated to `selectHomeCurrency` (constant renamed `DEFAULT_HOME_CURRENCY`, slice-only)
+- [x] Task 2: Profile tab — Preferences card (existing theme control + home-currency row → CurrencyPickerSheet reuse, label widened to string)
+- [x] Task 3: `OfflineDataCard` (`getAllKeys()` on AppStorage both engines, five cache buckets, clear-with-confirm sparing user data) + About card (8 API attributions + version via expo-constants)
+- [x] Task 4: Gates green (tsc + lint); JOURNEY; commit; debrief; **wait for "Phase Approved"**
 
-**Exit criteria:** theme + home currency both persist across force-stop; changing home currency visibly changes the detail CurrencyCard and converter default without code edits; clear-cache leaves trips, favorites, and session intact (verified by inspection after clearing); gates green.
+**Exit criteria (code-level, met):** gates green; all HOME_CURRENCY reads go through the slice; clear list contains only re-downloadable prefixes.
+
+## ⏸ DEFERRED RUNTIME VERIFICATION (user directive 2026-07-06: emulator/Metro stopped to save RAM — one consolidated pass after all phases)
+
+- [ ] Theme switch applies live; choice survives force-stop
+- [ ] Home currency change ripples: detail CurrencyCard quote, new budget entry currency + amount label
+- [ ] Home currency survives force-stop (settings slice persistence round-trip)
+- [ ] Budget with mixed currencies renders grouped totals (primary big number + "+ X" captions)
+- [ ] Offline-data counts look sane; Clear empties buckets; trips/favorites/session/theme intact after clear
+- [ ] CurrencyPickerSheet opens from Profile, search works, selection dismisses
+- [ ] MMKV `getAllKeys()` returns expected keys (interface addition unproven on device)

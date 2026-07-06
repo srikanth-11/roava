@@ -5,8 +5,8 @@
  * degrade the card — they never break the screen.
  */
 
-/** Home currency for rate comparisons. Becomes a Setting in Phase 15. */
-export const HOME_CURRENCY = 'INR';
+/** Default for the home-currency SETTING (settingsSlice) — read the slice, not this. */
+export const DEFAULT_HOME_CURRENCY = 'INR';
 
 export const COUNTRY_CURRENCY: Record<string, string> = {
   AE: 'AED',

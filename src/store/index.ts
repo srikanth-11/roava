@@ -6,6 +6,7 @@ import { cacheSlice } from '@/store/cacheSlice';
 import { currencySlice } from '@/store/currencySlice';
 import { favoritesSlice } from '@/store/favoritesSlice';
 import { loadPersistedState, persistenceListener } from '@/store/persistence';
+import { settingsSlice } from '@/store/settingsSlice';
 
 const rootReducer = combineReducers({
   [api.reducerPath]: api.reducer,
@@ -13,6 +14,7 @@ const rootReducer = combineReducers({
   auth: authSlice.reducer,
   favorites: favoritesSlice.reducer,
   currency: currencySlice.reducer,
+  settings: settingsSlice.reducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

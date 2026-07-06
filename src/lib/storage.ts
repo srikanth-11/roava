@@ -11,6 +11,8 @@ export interface AppStorage {
   getString(key: string): Promise<string | null>;
   setString(key: string, value: string): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Every stored key — powers the settings screen's cache inventory. */
+  getAllKeys(): Promise<string[]>;
 }
 
 class AsyncAppStorage implements AppStorage {
@@ -25,12 +27,17 @@ class AsyncAppStorage implements AppStorage {
   delete(key: string): Promise<void> {
     return AsyncStorage.removeItem(key);
   }
+
+  async getAllKeys(): Promise<string[]> {
+    return [...(await AsyncStorage.getAllKeys())];
+  }
 }
 
 interface MmkvLike {
   getString(key: string): string | undefined;
   set(key: string, value: string): void;
   delete(key: string): void;
+  getAllKeys(): string[];
 }
 
 class MmkvAppStorage implements AppStorage {
@@ -48,6 +55,10 @@ class MmkvAppStorage implements AppStorage {
   delete(key: string): Promise<void> {
     this.mmkv.delete(key);
     return Promise.resolve();
+  }
+
+  getAllKeys(): Promise<string[]> {
+    return Promise.resolve(this.mmkv.getAllKeys());
   }
 }
 

@@ -515,6 +515,26 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 17 — Phase 14: Profile & Settings (2026-07-06)
+
+### 17.1 Process shift: verification batched to the end
+
+- The machine was RAM-starved again, so the emulator and Metro are OFF: from this phase until the build finishes, per-phase gates are typecheck + lint only, and every phase plan carries an explicit **"deferred runtime verification" checklist** for one consolidated device pass at the end.
+- **Lesson:** when the verification loop gets expensive, don't silently skip it — write down exactly what remains unproven so the debt is visible and collectable.
+
+### 17.2 A constant becomes a setting — the migration pattern
+
+- `HOME_CURRENCY` had three consumers (detail card, budget, converter default). The migration: rename the constant to `DEFAULT_HOME_CURRENCY` (now referenced ONLY by the slice's initial state) so the compiler finds every stale consumer as a build error, then point them all at `selectHomeCurrency`.
+- Budget totals stopped assuming one currency: entries always stored their currency (Phase 12 schema), so totals now group by it — largest bucket is the headline number, others append as captions. Old data stays truthful after the setting changes.
+- **Lesson:** when a constant becomes a setting, make the old name unresolvable. Renaming forces the compiler to find every consumer; keeping a deprecated alias guarantees a stale read survives.
+
+### 17.3 The React Compiler effect rule, third encounter
+
+- `setBuckets` inside a `useCallback` invoked from `useEffect` → "setState synchronously within an effect." Same family as Phase 8 (Date.now in render) and Phase 11 (sync setState in effect). Fix: inline the storage read with an explicit `.then` + `live` cancellation flag so the async boundary is visible to the compiler.
+- **Lesson:** the compiler can't see through your own hooks — an async `useCallback` reads as synchronous at the call site. Make the asynchrony syntactic (`.then`) where the lint needs to see it.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

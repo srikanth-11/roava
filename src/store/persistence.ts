@@ -4,6 +4,7 @@ import { storage } from '@/lib/storage';
 import type { CacheState } from '@/store/cacheSlice';
 import type { CurrencyState } from '@/store/currencySlice';
 import type { FavoritesState } from '@/store/favoritesSlice';
+import type { SettingsState } from '@/store/settingsSlice';
 
 /**
  * Hand-rolled selective persistence: whitelisted slices are written to
@@ -11,13 +12,14 @@ import type { FavoritesState } from '@/store/favoritesSlice';
  * created. Same job redux-persist does — visible, typed, and engine-agnostic.
  */
 const STORAGE_PREFIX = 'roava.state.';
-const WHITELIST = ['cache', 'favorites', 'currency'] as const;
+const WHITELIST = ['cache', 'favorites', 'currency', 'settings'] as const;
 type PersistedSlice = (typeof WHITELIST)[number];
 
 interface PersistedShape {
   cache: CacheState;
   favorites: FavoritesState;
   currency: CurrencyState;
+  settings: SettingsState;
 }
 
 // Generic K correlates key and value — a plain loop variable is a union, and

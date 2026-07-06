@@ -1,17 +1,55 @@
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import Constants from 'expo-constants';
 import { Link, router } from 'expo-router';
-import { Database, LogIn, LogOut, Moon, Palette, Sun, UserRound } from 'lucide-react-native';
-import { Alert, View } from 'react-native';
+import {
+  Banknote,
+  ChevronRight,
+  Database,
+  Info,
+  LogIn,
+  LogOut,
+  Moon,
+  Palette,
+  Sun,
+  UserRound,
+} from 'lucide-react-native';
+import { useRef } from 'react';
+import { Alert, Pressable, View } from 'react-native';
 
 import { Badge, Button, Card, Icon, Screen, Text } from '@/components/ui';
+import { CurrencyPickerSheet } from '@/features/currency/CurrencyPickerSheet';
+import { OfflineDataCard } from '@/features/settings/OfflineDataCard';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppStore';
+import { hapticLight } from '@/lib/haptics';
 import { storage, storageEngine, StorageKeys } from '@/lib/storage';
 import { useTheme } from '@/lib/theme';
 import { signOut } from '@/store/authSlice';
+import { homeCurrencyChanged, selectHomeCurrency } from '@/store/settingsSlice';
+
+/** Every free API that powers the app gets its credit. */
+const ATTRIBUTIONS = [
+  'City data — GeoDB Cities',
+  'Photos — Unsplash (per-photo credits shown in app)',
+  'Weather & air quality — OpenWeather',
+  'UV index — Open-Meteo',
+  'Sights — OpenStreetMap via Overpass (© OpenStreetMap contributors)',
+  'Map tiles — OpenFreeMap (© OpenStreetMap contributors)',
+  'Exchange rates — open.er-api.com',
+  'Live flights — The OpenSky Network',
+];
 
 export default function ProfileScreen() {
   const { mode, setMode, resolved } = useTheme();
   const dispatch = useAppDispatch();
   const session = useAppSelector((s) => s.auth.session);
+  const homeCurrency = useAppSelector(selectHomeCurrency);
+  const currencySheetRef = useRef<BottomSheetModal>(null);
+
+  const onPickHomeCurrency = (code: string) => {
+    hapticLight();
+    dispatch(homeCurrencyChanged(code));
+    currencySheetRef.current?.dismiss();
+  };
 
   const confirmSignOut = () => {
     Alert.alert('Sign out?', 'Your trips and favorites stay on this device.', [
@@ -79,8 +117,11 @@ export default function ProfileScreen() {
         <Card>
           <View className="mb-3 flex-row items-center gap-2">
             <Icon icon={resolved === 'dark' ? Moon : Sun} color="muted" />
-            <Text variant="h3">Appearance</Text>
+            <Text variant="h3">Preferences</Text>
           </View>
+          <Text variant="caption" color="muted" className="mb-2">
+            Theme
+          </Text>
           <View className="flex-row gap-2">
             {(['light', 'dark', 'system'] as const).map((m) => (
               <Button
@@ -92,6 +133,43 @@ export default function ProfileScreen() {
               />
             ))}
           </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Home currency, currently ${homeCurrency}`}
+            accessibilityHint="Opens the currency picker"
+            onPress={() => currencySheetRef.current?.present()}
+            className="mt-4 flex-row items-center gap-3 rounded-md border border-border p-3 active:opacity-90"
+          >
+            <Icon icon={Banknote} color="muted" size={20} />
+            <View className="flex-1">
+              <Text variant="label">Home currency</Text>
+              <Text variant="caption" color="muted">
+                Conversions and budgets default to this
+              </Text>
+            </View>
+            <Badge label={homeCurrency} variant="outline" />
+            <Icon icon={ChevronRight} color="muted" size={16} />
+          </Pressable>
+        </Card>
+
+        <OfflineDataCard />
+
+        <Card>
+          <View className="mb-3 flex-row items-center gap-2">
+            <Icon icon={Info} color="muted" />
+            <Text variant="h3">About</Text>
+          </View>
+          <View className="gap-1">
+            {ATTRIBUTIONS.map((line) => (
+              <Text key={line} variant="caption" color="muted">
+                {line}
+              </Text>
+            ))}
+          </View>
+          <Text variant="caption" color="muted" className="mt-3">
+            Roava {Constants.expoConfig?.version ?? 'dev'} · data stays on this device
+          </Text>
         </Card>
 
         {__DEV__ ? (
@@ -106,6 +184,13 @@ export default function ProfileScreen() {
           </View>
         ) : null}
       </View>
+
+      <CurrencyPickerSheet
+        ref={currencySheetRef}
+        label="Home currency"
+        selected={homeCurrency}
+        onSelect={onPickHomeCurrency}
+      />
     </Screen>
   );
 }

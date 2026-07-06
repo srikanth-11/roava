@@ -8,8 +8,8 @@ import { CURRENCY_META } from '@/lib/currencies';
 import { palette } from '@/lib/palette';
 
 interface CurrencyPickerSheetProps {
-  /** Which side is being picked — displayed in the header. */
-  label: 'From' | 'To';
+  /** Sheet header — "From"/"To" in the converter, "Home currency" in settings. */
+  label: string;
   selected: string;
   onSelect: (code: string) => void;
 }

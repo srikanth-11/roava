@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { Button, EmptyState, Icon, Input, Text } from '@/components/ui';
-import { HOME_CURRENCY } from '@/lib/currencies';
 import { formatMoney } from '@/lib/money';
+import { useAppSelector } from '@/hooks/useAppStore';
 import { useUpdateTripMutation } from '@/store/api';
+import { selectHomeCurrency } from '@/store/settingsSlice';
 import { BUDGET_CATEGORIES, type BudgetCategory, type Trip } from '@/types/trip';
 
 const CATEGORY_LABEL: Record<BudgetCategory, string> = {
@@ -17,8 +18,13 @@ const CATEGORY_LABEL: Record<BudgetCategory, string> = {
   other: 'Other',
 };
 
-/** Single-currency (home) budget MVP — multi-currency joins when sync does. */
+/**
+ * New entries take the CURRENT home currency; old entries keep the currency
+ * they were written in (the Phase 12 schema stores it per entry), so totals
+ * group by currency instead of pretending everything is one unit.
+ */
 export function BudgetSection({ trip }: { trip: Trip }) {
+  const homeCurrency = useAppSelector(selectHomeCurrency);
   const [updateTrip] = useUpdateTripMutation();
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<BudgetCategory>('food');
@@ -27,10 +33,18 @@ export function BudgetSection({ trip }: { trip: Trip }) {
   const parsed = Number.parseFloat(amount.replace(',', '.'));
   const valid = Number.isFinite(parsed) && parsed > 0;
 
-  const total = trip.budget.reduce((sum, e) => sum + e.amount, 0);
+  const totalsByCurrency = trip.budget.reduce<Record<string, number>>((acc, e) => {
+    acc[e.currency] = (acc[e.currency] ?? 0) + e.amount;
+    return acc;
+  }, {});
+  const currencyTotals = Object.entries(totalsByCurrency).sort((a, b) => b[1] - a[1]);
+  // Big number = the largest bucket; other currencies surface as caption lines.
+  const primary = currencyTotals[0] ?? ([homeCurrency, 0] as [string, number]);
   const byCategory = BUDGET_CATEGORIES.map((c) => ({
     category: c,
-    sum: trip.budget.filter((e) => e.category === c).reduce((s, e) => s + e.amount, 0),
+    sum: trip.budget
+      .filter((e) => e.category === c && e.currency === primary[0])
+      .reduce((s, e) => s + e.amount, 0),
   })).filter((c) => c.sum > 0);
 
   const add = () => {
@@ -40,7 +54,7 @@ export function BudgetSection({ trip }: { trip: Trip }) {
       command: {
         kind: 'addBudget',
         amount: parsed,
-        currency: HOME_CURRENCY,
+        currency: homeCurrency,
         category,
         note: note.trim() || undefined,
       },
@@ -64,12 +78,17 @@ export function BudgetSection({ trip }: { trip: Trip }) {
           <Text variant="caption" color="muted">
             Spent so far
           </Text>
-          <Text variant="display">{formatMoney(total, HOME_CURRENCY)}</Text>
+          <Text variant="display">{formatMoney(primary[1], primary[0])}</Text>
+          {currencyTotals.slice(1).map(([code, sum]) => (
+            <Text key={code} variant="caption" color="muted">
+              + {formatMoney(sum, code)}
+            </Text>
+          ))}
           {byCategory.length > 0 ? (
             <View className="mt-1 flex-row flex-wrap justify-center gap-2">
               {byCategory.map((c) => (
                 <Text key={c.category} variant="caption" color="muted">
-                  {CATEGORY_LABEL[c.category]} {formatMoney(c.sum, HOME_CURRENCY)}
+                  {CATEGORY_LABEL[c.category]} {formatMoney(c.sum, primary[0])}
                 </Text>
               ))}
             </View>
@@ -80,12 +99,12 @@ export function BudgetSection({ trip }: { trip: Trip }) {
           <View className="flex-row items-end gap-2">
             <Input
               className="flex-1"
-              label={`Amount (${HOME_CURRENCY})`}
+              label={`Amount (${homeCurrency})`}
               placeholder="1200"
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
-              accessibilityLabel={`Expense amount in ${HOME_CURRENCY}`}
+              accessibilityLabel={`Expense amount in ${homeCurrency}`}
             />
             <Input
               className="flex-1"
