@@ -27,4 +27,4 @@
 - [ ] Throw inside a route in dev → CrashScreen renders, "Try again" recovers
 - [ ] Hardware back closes each of the four sheets (and does NOT exit the app)
 - [ ] `roava://destination/garbage`, `/trip/junk`, `/flights/xyz` → honest error states, back works
-- [ ] Release build assembles and installs (`gradlew assembleRelease`) — console stripped, signed with the release keystore
+- [x] Release build assembles and installs (`gradlew assembleRelease`) — DONE EARLY 2026-07-06: signed (apksigner-verified), installed on the phone, user-confirmed running standalone (JOURNEY 20)

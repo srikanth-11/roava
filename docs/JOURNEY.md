@@ -604,6 +604,24 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 20 — The First Release Build (2026-07-06, Phase 18 items pulled early)
+
+### 20.1 `Cannot convert 'null' to File` — the BOM that ate a property key
+
+- **Problem:** first `assembleRelease` died evaluating the signing block: `keystoreProps['storeFile']` was null although `keystore.properties` clearly contained it.
+- **Diagnosis:** the file was written by PowerShell 5.1 `Set-Content -Encoding utf8`, which emits a **UTF-8 BOM**. Java's `Properties.load(InputStream)` reads ISO-8859-1 and folds the BOM bytes into the first key — the key on disk was effectively `﻿storeFile`.
+- **Solution:** rewrite BOM-free (`[IO.File]::WriteAllText` with `UTF8Encoding($false)`). Second build: **BUILD SUCCESSFUL in 21m 43s** — 62 MB arm64 APK, `apksigner` confirming the release certificate.
+- **Lesson:** any file JAVA will parse must be written BOM-free from PowerShell 5.1. Sibling of survival-kit rule 7 — same disease, text edition.
+
+### 20.2 The network changed identity and took two settings with it
+
+- **Problem:** the phone couldn't reach the APK server ("site can't be reached") though the server answered locally and a firewall allow-rule for 8090 existed.
+- **Diagnosis:** the router had reassigned the PC from `192.168.1.3` to `192.168.0.109` — a NEW network in Windows' eyes, defaulting to **Public** profile, while the allow rule was scoped to **Private** (JOURNEY 9.3's fix, silently undone by the network change). The stale `REACT_NATIVE_PACKAGER_HOSTNAME` was collateral damage.
+- **Solution:** `Set-NetConnectionProfile … -NetworkCategory Private` (elevated, user-run) + env var updated to the new IP. In the end the phone transfer went via file copy anyway; the release APK **installed and ran standalone on the phone** — first cold boot with the embedded bundle, closing 13.1's harness limitation on real hardware.
+- **Lesson:** LAN dev setups are keyed to the network's identity, not just the machine. When the subnet changes, re-check the trio: IP-pinned env vars, firewall rule profiles, and the connection's Public/Private category.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
@@ -623,3 +641,5 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 | 13  | Everything flaking at once → check free RAM first; recycle long-lived Metro                                 | 10.5   |
 | 14  | External API "200 OK" ≠ success — check the body's own error channel (Overpass `remark`)                    | 10.3   |
 | 15  | A fix with NO effect (not wrong — absent) → verify the running bundle first; airplane toggles kill HMR      | 16.4   |
+| 16  | Files Java parses must be BOM-free — PS 5.1 `-Encoding utf8` writes a BOM that corrupts the first key       | 20.1   |
+| 17  | Subnet changed? Re-check IP-pinned env vars, firewall rule profiles, and the Public/Private category        | 20.2   |
