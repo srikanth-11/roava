@@ -7,6 +7,7 @@ import { Pressable, View } from 'react-native';
 import { EmptyState, ErrorState, Icon, Input, Screen, Skeleton, Text } from '@/components/ui';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { Flight } from '@/repositories/flights';
+import { BOTTOM_GAP } from '@/lib/layout';
 import { isAppError } from '@/services/errors';
 import { useSearchFlightsQuery } from '@/store/api';
 
@@ -122,7 +123,7 @@ export default function FlightsScreen() {
               keyExtractor={(f) => f.icao24}
               ItemSeparatorComponent={() => <View className="h-2" />}
               renderItem={({ item }) => <FlightRow flight={item} />}
-              contentContainerStyle={{ paddingBottom: 16 }}
+              contentContainerStyle={{ paddingBottom: BOTTOM_GAP }}
             />
           </View>
         ) : (

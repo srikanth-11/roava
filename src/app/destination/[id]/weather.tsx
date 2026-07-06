@@ -89,7 +89,7 @@ export default function DestinationWeather() {
           onRetry={() => void refetch()}
         />
       ) : (
-        <View className="gap-5 px-4 pb-6 pt-2">
+        <View className="gap-5 px-4 pb-8 pt-2">
           {data.isStale ? (
             <View className="flex-row items-center gap-2">
               <StaleBadge label="saved forecast" ageLabel={staleAgeLabel(data.fetchedAt)} />

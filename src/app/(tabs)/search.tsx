@@ -10,6 +10,7 @@ import { FiltersSheet, POPULATION_OPTIONS } from '@/features/search/FiltersSheet
 import { SearchResultRow } from '@/features/search/SearchResultRow';
 import { useDebounce } from '@/hooks/useDebounce';
 import { hapticLight } from '@/lib/haptics';
+import { BOTTOM_GAP } from '@/lib/layout';
 import {
   addToSearchHistory,
   clearSearchHistory,
@@ -165,7 +166,7 @@ export default function SearchScreen() {
           data={data ?? []}
           keyExtractor={(d) => d.id}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingTop: 12, paddingBottom: 16 }}
+          contentContainerStyle={{ paddingTop: 12, paddingBottom: BOTTOM_GAP }}
           renderItem={({ item }) => (
             <SearchResultRow destination={item} query={debouncedQuery} onPress={openDestination} />
           )}

@@ -4,6 +4,7 @@ import { Banknote, CloudOff, Compass, Plane, Sparkles } from 'lucide-react-nativ
 import { Pressable, RefreshControl, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { BOTTOM_GAP } from '@/lib/layout';
 import { enterDownStagger } from '@/lib/motion';
 import { useColorScheme } from 'nativewind';
 
@@ -167,7 +168,7 @@ export default function HomeScreen() {
             <View className="h-4" />
           )
         }
-        contentContainerStyle={{ paddingBottom: 16 }}
+        contentContainerStyle={{ paddingBottom: BOTTOM_GAP }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item, index }) => (
           <Animated.View entering={enterDownStagger(index)} className="px-4">

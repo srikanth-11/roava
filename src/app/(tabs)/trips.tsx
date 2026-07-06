@@ -8,6 +8,7 @@ import { Pressable, View } from 'react-native';
 import { Button, EmptyState, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
 import { CreateTripSheet, type CreateTripForm } from '@/features/trips/CreateTripSheet';
 import { hapticSuccess } from '@/lib/haptics';
+import { BOTTOM_GAP } from '@/lib/layout';
 import { isAppError } from '@/services/errors';
 import { useCreateTripMutation, useGetTripsQuery } from '@/store/api';
 import { tripDayCount, type Trip } from '@/types/trip';
@@ -102,7 +103,7 @@ export default function TripsScreen() {
             keyExtractor={(t) => t.id}
             ItemSeparatorComponent={() => <View className="h-3" />}
             renderItem={({ item }) => <TripRow trip={item} />}
-            contentContainerStyle={{ paddingBottom: 16 }}
+            contentContainerStyle={{ paddingBottom: BOTTOM_GAP }}
           />
         ) : (
           <EmptyState

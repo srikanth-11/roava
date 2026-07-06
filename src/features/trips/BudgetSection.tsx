@@ -4,6 +4,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Button, EmptyState, Icon, Input, Text } from '@/components/ui';
+import { BOTTOM_GAP } from '@/lib/layout';
 import { formatMoney } from '@/lib/money';
 import { enterDown, exitFade, listLayout } from '@/lib/motion';
 import { useAppSelector } from '@/hooks/useAppStore';
@@ -72,7 +73,7 @@ export function BudgetSection({ trip }: { trip: Trip }) {
   return (
     <ScrollView
       className="flex-1"
-      contentContainerStyle={{ paddingBottom: 24 }}
+      contentContainerStyle={{ paddingBottom: BOTTOM_GAP }}
       keyboardShouldPersistTaps="handled"
     >
       <View className="gap-4">

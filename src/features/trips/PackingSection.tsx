@@ -5,6 +5,7 @@ import Animated from 'react-native-reanimated';
 
 import { Button, EmptyState, Icon, Input, Text } from '@/components/ui';
 import { hapticLight } from '@/lib/haptics';
+import { BOTTOM_GAP } from '@/lib/layout';
 import { enterDown, exitFade, listLayout } from '@/lib/motion';
 import { useUpdateTripMutation } from '@/store/api';
 import type { Trip } from '@/types/trip';
@@ -33,7 +34,7 @@ export function PackingSection({ trip }: { trip: Trip }) {
   return (
     <ScrollView
       className="flex-1"
-      contentContainerStyle={{ paddingBottom: 24 }}
+      contentContainerStyle={{ paddingBottom: BOTTOM_GAP }}
       keyboardShouldPersistTaps="handled"
     >
       <View className="gap-4">

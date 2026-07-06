@@ -5,6 +5,7 @@ import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable
 
 import { Button, EmptyState, Icon, Input, Text } from '@/components/ui';
 import { hapticLight } from '@/lib/haptics';
+import { BOTTOM_GAP } from '@/lib/layout';
 import { useUpdateTripMutation } from '@/store/api';
 import { tripDayCount, type ItineraryItem, type Trip } from '@/types/trip';
 
@@ -151,7 +152,7 @@ export function ItinerarySection({ trip }: { trip: Trip }) {
           renderItem={renderItem}
           onDragEnd={({ data }) => onDragEnd(data)}
           containerStyle={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: BOTTOM_GAP }}
         />
       )}
     </View>
