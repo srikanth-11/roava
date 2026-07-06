@@ -2,7 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
-import { Badge, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { StaleBadge, staleAgeLabel } from '@/components/shared/StaleBadge';
 import { AqiTile, UvTile } from '@/features/weather/AirQualityTiles';
 import { CurrentHeader } from '@/features/weather/CurrentHeader';
 import { DailyList } from '@/features/weather/DailyList';
@@ -10,13 +11,6 @@ import { HourlyRail } from '@/features/weather/HourlyRail';
 import { SunArc } from '@/features/weather/SunArc';
 import { isAppError } from '@/services/errors';
 import { useGetFullWeatherQuery } from '@/store/api';
-
-function staleAge(fetchedAt: number): string {
-  const mins = Math.round((Date.now() - fetchedAt) / 60_000);
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.round(mins / 60);
-  return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-}
 
 function WeatherSkeleton() {
   return (
@@ -93,10 +87,7 @@ export default function DestinationWeather() {
         <View className="gap-5 px-4 pb-6 pt-2">
           {data.isStale ? (
             <View className="flex-row items-center gap-2">
-              <Badge label="saved forecast" variant="warning" />
-              <Text variant="caption" color="muted">
-                updated {staleAge(data.fetchedAt)}
-              </Text>
+              <StaleBadge label="saved forecast" ageLabel={staleAgeLabel(data.fetchedAt)} />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Refresh forecast"

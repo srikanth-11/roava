@@ -13,10 +13,10 @@
 
 ## Tasks
 
-- [ ] Task 1: Dark sweep — non-token color hunt + palette gap fixes + scheme-driven surface audit
-- [ ] Task 2: Motion — entering/layout transitions on mutable plain-View lists + reduced-motion respect
-- [ ] Task 3: StaleBadge extraction + adoption; empty-state audit
-- [ ] Task 4: Gates; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: Dark sweep — ZERO non-token colors found in src (discipline held); one fix: Input placeholderTextColor inline literals → palette (JOURNEY 18.1); scheme surfaces (StatusBar, map styles, sheets) all palette-driven ✓
+- [x] Task 2: `lib/motion.ts` presets (ReduceMotion.System baked in) — packing/budget rows, undo bar, trip section crossfade, Home staggers unified (18.2)
+- [x] Task 3: `StaleBadge` + `staleAgeLabel` adopted at 4 badge sites; CurrencyCard stays prose (deliberate); all 10 EmptyStates pass the audit (18.3)
+- [x] Task 4: Gates green; JOURNEY 18; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria (code-level):** zero non-semantic colors outside token files; all mutable plain-View lists animate with reduced-motion guard; one StaleBadge component serves all badge-shaped staleness; gates green.
 

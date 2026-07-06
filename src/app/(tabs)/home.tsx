@@ -2,10 +2,13 @@ import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { Banknote, CloudOff, Compass, Plane, Sparkles } from 'lucide-react-native';
 import { Pressable, RefreshControl, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+
+import { enterDownStagger } from '@/lib/motion';
 import { useColorScheme } from 'nativewind';
 
-import { Badge, Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { StaleBadge } from '@/components/shared/StaleBadge';
 import { DestinationCard } from '@/features/home/DestinationCard';
 import { useAppSelector } from '@/hooks/useAppStore';
 import { palette } from '@/lib/palette';
@@ -32,7 +35,7 @@ function HomeHeader({ rail, showStale }: { rail: Destination[]; showStale: boole
         </Text>
         <View className="flex-row items-center gap-2">
           <Text variant="h1">{firstName}</Text>
-          {showStale ? <Badge label="saved data" variant="warning" /> : null}
+          {showStale ? <StaleBadge /> : null}
         </View>
       </View>
 
@@ -48,7 +51,7 @@ function HomeHeader({ rail, showStale }: { rail: Destination[]; showStale: boole
           contentContainerStyle={{ paddingHorizontal: 16 }}
           ItemSeparatorComponent={() => <View className="w-3" />}
           renderItem={({ item, index }) => (
-            <Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+            <Animated.View entering={enterDownStagger(index)}>
               <DestinationCard destination={item} layout="rail" />
             </Animated.View>
           )}
@@ -178,10 +181,7 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: 16 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeInDown.delay(Math.min(index * 50, 300)).springify()}
-            className="px-4"
-          >
+          <Animated.View entering={enterDownStagger(index)} className="px-4">
             <DestinationCard destination={item} layout="list" />
           </Animated.View>
         )}

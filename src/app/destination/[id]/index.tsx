@@ -3,6 +3,7 @@ import { Share, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 import { Badge, ErrorState, Screen, Skeleton } from '@/components/ui';
+import { StaleBadge } from '@/components/shared/StaleBadge';
 import { CurrencyCard } from '@/features/destination/CurrencyCard';
 import { LocalTimeCard } from '@/features/destination/LocalTimeCard';
 import { ParallaxHero, HERO_HEIGHT } from '@/features/destination/ParallaxHero';
@@ -113,7 +114,7 @@ export default function DestinationDetail() {
 
         <View className="gap-6 px-4 pt-4">
           <View className="flex-row flex-wrap gap-2">
-            {data.isStale ? <Badge label="saved data" variant="warning" /> : null}
+            {data.isStale ? <StaleBadge /> : null}
             {data.population ? (
               <Badge
                 label={`${(data.population / 1_000_000).toFixed(1)}M people`}

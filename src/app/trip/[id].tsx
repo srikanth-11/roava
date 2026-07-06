@@ -2,8 +2,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, CalendarDays, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { enterFade } from '@/lib/motion';
 import { BudgetSection } from '@/features/trips/BudgetSection';
 import { ItinerarySection } from '@/features/trips/ItinerarySection';
 import { NotesSection } from '@/features/trips/NotesSection';
@@ -112,12 +114,13 @@ export default function TripDetail() {
               ))}
             </View>
 
-            <View className="flex-1">
+            {/* key={section} remounts on chip switch — the crossfade IS the transition. */}
+            <Animated.View key={section} entering={enterFade} className="flex-1">
               {section === 'Itinerary' ? <ItinerarySection trip={trip} /> : null}
               {section === 'Budget' ? <BudgetSection trip={trip} /> : null}
               {section === 'Packing' ? <PackingSection trip={trip} /> : null}
               {section === 'Notes' ? <NotesSection trip={trip} /> : null}
-            </View>
+            </Animated.View>
           </>
         )}
       </View>

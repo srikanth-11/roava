@@ -3,6 +3,7 @@ import { TextInput, View, type TextInputProps } from 'react-native';
 import { useColorScheme } from 'nativewind';
 
 import { Text } from '@/components/ui/Text';
+import { palette } from '@/lib/palette';
 
 export interface InputProps extends TextInputProps {
   label: string;
@@ -46,7 +47,7 @@ export function Input({
         <TextInput
           accessibilityLabel={label}
           className="flex-1 font-body text-base text-foreground"
-          placeholderTextColor={colorScheme === 'dark' ? 'rgb(148 163 184)' : 'rgb(100 116 139)'}
+          placeholderTextColor={palette[colorScheme ?? 'light'].mutedForeground}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);

@@ -535,6 +535,26 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 18 — Phase 15: Polish & Dark Theme (2026-07-06)
+
+### 18.1 The dark sweep that found (almost) nothing
+
+- The hunt for non-token colors across all of `src/`: **zero raw hex, zero Tailwind literal colors.** Fourteen phases of "semantic tokens only" discipline held. The one find: `Input.tsx` duplicated `mutedForeground`'s RGB values as inline literals for `placeholderTextColor` — correct today, silent drift tomorrow. Now reads `palette[scheme]`.
+- **Lesson:** a design rule enforced from day one costs nothing to audit; the only leak was where a NATIVE prop (placeholderTextColor) couldn't take a className and someone hand-copied the value. Native-prop boundaries are where token systems leak — grep for them specifically.
+
+### 18.2 Motion presets with a11y baked in
+
+- New `lib/motion.ts`: `enterDown` / `enterFade` / `exitFade` / `listLayout` / `enterDownStagger(i)` — every preset chains `.reduceMotion(ReduceMotion.System)` so an OS-level reduce-motion setting collapses them to instant. Call sites can't forget what they never had to remember.
+- Applied to the mutable plain-View lists (packing, budget, undo bar) with `entering/exiting/layout`, a `key`-remount crossfade on trip section switches, and Home's two hand-rolled staggers replaced with the shared preset. FlashList/DraggableFlatList left alone — they own their items.
+- **Lesson:** motion consistency is an API problem, not a design problem. One preset module beats ten call sites each remembering damping values and a11y flags.
+
+### 18.3 One voice for staleness
+
+- Four badge-shaped stale indicators (home feed, destination detail, weather, converter) had four hand-rolled renderings. Now one `StaleBadge` (warning badge + optional `staleAgeLabel(fetchedAt)` caption). The tiny CurrencyCard keeps caption prose — a badge would outweigh the card.
+- Empty-state audit: all ten `EmptyState` usages already carry icon + title + actionable message. No changes needed.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |

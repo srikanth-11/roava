@@ -1,9 +1,11 @@
 import { CheckSquare, Plus, Square, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Button, EmptyState, Icon, Input, Text } from '@/components/ui';
 import { hapticLight } from '@/lib/haptics';
+import { enterDown, exitFade, listLayout } from '@/lib/motion';
 import { useUpdateTripMutation } from '@/store/api';
 import type { Trip } from '@/types/trip';
 
@@ -62,8 +64,11 @@ export function PackingSection({ trip }: { trip: Trip }) {
         ) : (
           <View className="gap-2">
             {trip.packing.map((item) => (
-              <View
+              <Animated.View
                 key={item.id}
+                entering={enterDown}
+                exiting={exitFade}
+                layout={listLayout}
                 className="flex-row items-center gap-3 rounded-lg border border-border bg-surface p-3"
               >
                 <Pressable
@@ -94,7 +99,7 @@ export function PackingSection({ trip }: { trip: Trip }) {
                 >
                   <Icon icon={Trash2} size={16} color="muted" accessibilityLabel="Delete" />
                 </Pressable>
-              </View>
+              </Animated.View>
             ))}
           </View>
         )}

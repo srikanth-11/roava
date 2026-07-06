@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
-import { Badge, Text } from '@/components/ui';
+import { Text } from '@/components/ui';
+import { StaleBadge } from '@/components/shared/StaleBadge';
 import { formatMoney } from '@/lib/money';
 import type { RateTable } from '@/repositories/currency';
 
@@ -41,7 +42,7 @@ export function RateResult({ amount, base, quote, table }: RateResultProps) {
         {quote} = {(1 / rate).toFixed(1 / rate >= 1 ? 2 : 4)} {base}
       </Text>
       <View className="mt-1 flex-row items-center gap-2">
-        {table.isStale ? <Badge label="saved rate" variant="warning" /> : null}
+        {table.isStale ? <StaleBadge label="saved rate" /> : null}
         <Text variant="caption" color="muted">
           rates from {ageLabel(table.fetchedAt)}
         </Text>

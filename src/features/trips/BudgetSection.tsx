@@ -1,9 +1,11 @@
 import { Plus, ReceiptText, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { Button, EmptyState, Icon, Input, Text } from '@/components/ui';
 import { formatMoney } from '@/lib/money';
+import { enterDown, exitFade, listLayout } from '@/lib/motion';
 import { useAppSelector } from '@/hooks/useAppStore';
 import { useUpdateTripMutation } from '@/store/api';
 import { selectHomeCurrency } from '@/store/settingsSlice';
@@ -146,8 +148,11 @@ export function BudgetSection({ trip }: { trip: Trip }) {
             {[...trip.budget]
               .sort((a, b) => b.spentAt - a.spentAt)
               .map((entry) => (
-                <View
+                <Animated.View
                   key={entry.id}
+                  entering={enterDown}
+                  exiting={exitFade}
+                  layout={listLayout}
                   className="flex-row items-center gap-3 rounded-lg border border-border bg-surface p-3"
                 >
                   <View className="flex-1 gap-0.5">
@@ -165,7 +170,7 @@ export function BudgetSection({ trip }: { trip: Trip }) {
                   >
                     <Icon icon={Trash2} size={16} color="muted" accessibilityLabel="Delete" />
                   </Pressable>
-                </View>
+                </Animated.View>
               ))}
           </View>
         )}

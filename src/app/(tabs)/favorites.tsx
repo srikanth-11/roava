@@ -5,9 +5,11 @@ import { Heart, ImageOff, Trash2, Undo2 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated from 'react-native-reanimated';
 
 import { Button, EmptyState, Icon, Screen, Text } from '@/components/ui';
 import { hapticLight } from '@/lib/haptics';
+import { enterDown, exitFade } from '@/lib/motion';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppStore';
 import { favoriteRestored, favoriteToggled, type FavoriteItem } from '@/store/favoritesSlice';
 
@@ -133,12 +135,16 @@ export default function FavoritesScreen() {
 
         {pendingUndo ? (
           // scrim token: dark base in BOTH themes, so on-image text stays legible.
-          <View className="absolute inset-x-4 bottom-4 flex-row items-center gap-3 rounded-lg bg-scrim/90 p-4">
+          <Animated.View
+            entering={enterDown}
+            exiting={exitFade}
+            className="absolute inset-x-4 bottom-4 flex-row items-center gap-3 rounded-lg bg-scrim/90 p-4"
+          >
             <Text variant="body-sm" color="on-image" className="flex-1" numberOfLines={1}>
               Removed {pendingUndo.name}
             </Text>
             <Button label="Undo" size="sm" icon={Undo2} onPress={undo} />
-          </View>
+          </Animated.View>
         ) : null}
       </View>
     </Screen>
