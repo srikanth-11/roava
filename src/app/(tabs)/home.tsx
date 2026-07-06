@@ -10,6 +10,7 @@ import { useColorScheme } from 'nativewind';
 import { Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
 import { StaleBadge } from '@/components/shared/StaleBadge';
 import { DestinationCard } from '@/features/home/DestinationCard';
+import { TrendingRail } from '@/features/home/TrendingRail';
 import { useAppSelector } from '@/hooks/useAppStore';
 import { palette } from '@/lib/palette';
 import { isAppError } from '@/services/errors';
@@ -43,19 +44,7 @@ function HomeHeader({ rail, showStale }: { rail: Destination[]; showStale: boole
         <Text variant="h3" className="px-4">
           Trending now
         </Text>
-        <FlashList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={rail}
-          keyExtractor={(d) => d.id}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
-          ItemSeparatorComponent={() => <View className="w-3" />}
-          renderItem={({ item, index }) => (
-            <Animated.View entering={enterDownStagger(index)}>
-              <DestinationCard destination={item} layout="rail" />
-            </Animated.View>
-          )}
-        />
+        <TrendingRail destinations={rail} />
       </View>
 
       <View className="mx-4 flex-row items-center gap-3 rounded-lg bg-primary/10 p-4">
