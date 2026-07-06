@@ -8,7 +8,7 @@ import {
   type GeoJSONSourceRef,
 } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
 import { ArrowLeft, LocateOff, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useEffect, useRef, useState } from 'react';
@@ -23,6 +23,11 @@ import { palette } from '@/lib/palette';
 import type { Poi } from '@/repositories/pois';
 import { isAppError } from '@/services/errors';
 import { useGetMapPoisQuery } from '@/store/api';
+import { CrashScreen } from '@/components/shared/CrashScreen';
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen error={props.error} retry={props.retry} />;
+}
 
 const DEFAULT_ZOOM = 12.5;
 

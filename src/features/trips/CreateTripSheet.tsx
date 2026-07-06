@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { z } from 'zod';
 
 import { Button, Input, Text } from '@/components/ui';
+import { useSheetBackHandler } from '@/hooks/useSheetBackHandler';
 import { palette } from '@/lib/palette';
 
 /**
@@ -37,6 +38,7 @@ export const CreateTripSheet = forwardRef<BottomSheetModal, CreateTripSheetProps
   function CreateTripSheet({ onSubmit, submitting }, ref) {
     const { colorScheme } = useColorScheme();
     const colors = palette[colorScheme ?? 'light'];
+    const onSheetChange = useSheetBackHandler();
 
     const { control, handleSubmit, reset } = useForm<CreateTripForm>({
       resolver: zodResolver(createTripFormSchema),
@@ -51,6 +53,7 @@ export const CreateTripSheet = forwardRef<BottomSheetModal, CreateTripSheetProps
     return (
       <BottomSheetModal
         ref={ref}
+        onChange={onSheetChange}
         snapPoints={['75%']}
         enableDynamicSizing={false}
         backgroundStyle={{ backgroundColor: colors.surface, borderRadius: 24 }}

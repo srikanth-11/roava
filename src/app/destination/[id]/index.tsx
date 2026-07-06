@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
 import { Share, View } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
@@ -14,6 +14,11 @@ import { hapticLight } from '@/lib/haptics';
 import { isAppError } from '@/services/errors';
 import { useGetDestinationByIdQuery } from '@/store/api';
 import { favoriteToggled, selectIsFavorite } from '@/store/favoritesSlice';
+import { CrashScreen } from '@/components/shared/CrashScreen';
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen error={props.error} retry={props.retry} />;
+}
 
 function DetailSkeleton() {
   return (

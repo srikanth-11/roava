@@ -1,5 +1,5 @@
 import { Camera, GeoJSONSource, Layer, Map as MapLibreMap } from '@maplibre/maplibre-react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
 import {
   ArrowDown,
   ArrowLeft,
@@ -20,6 +20,11 @@ import { palette } from '@/lib/palette';
 import { phaseOf, type Flight, type FlightPhase } from '@/repositories/flights';
 import { isAppError } from '@/services/errors';
 import { useGetFlightStateQuery } from '@/store/api';
+import { CrashScreen } from '@/components/shared/CrashScreen';
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen error={props.error} retry={props.retry} />;
+}
 
 /** Anonymous OpenSky budget math: 1 credit per bbox'd poll → 30 s keeps an
  * hour of tracking near 120 credits of the ~400/day allowance. */

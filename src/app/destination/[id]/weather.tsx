@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
@@ -11,6 +11,11 @@ import { HourlyRail } from '@/features/weather/HourlyRail';
 import { SunArc } from '@/features/weather/SunArc';
 import { isAppError } from '@/services/errors';
 import { useGetFullWeatherQuery } from '@/store/api';
+import { CrashScreen } from '@/components/shared/CrashScreen';
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen error={props.error} retry={props.retry} />;
+}
 
 function WeatherSkeleton() {
   return (

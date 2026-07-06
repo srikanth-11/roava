@@ -4,6 +4,7 @@ import { forwardRef } from 'react';
 import { View } from 'react-native';
 
 import { Button, Text } from '@/components/ui';
+import { useSheetBackHandler } from '@/hooks/useSheetBackHandler';
 import { palette } from '@/lib/palette';
 
 export interface PopulationOption {
@@ -33,10 +34,12 @@ export const FiltersSheet = forwardRef<BottomSheetModal, FiltersSheetProps>(func
 ) {
   const { colorScheme } = useColorScheme();
   const colors = palette[colorScheme ?? 'light'];
+  const onSheetChange = useSheetBackHandler();
 
   return (
     <BottomSheetModal
       ref={ref}
+      onChange={onSheetChange}
       backgroundStyle={{ backgroundColor: colors.surface, borderRadius: 24 }}
       handleIndicatorStyle={{ backgroundColor: colors.mutedForeground }}
     >

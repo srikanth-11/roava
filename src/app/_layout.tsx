@@ -7,13 +7,14 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
 
+import { CrashScreen } from '@/components/shared/CrashScreen';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 import { palette } from '@/lib/palette';
 import { migrateLegacyStorage } from '@/lib/storage';
@@ -31,6 +32,11 @@ void SplashScreen.preventAutoHideAsync();
 export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
+
+// Last line of crash defense — routes without their own boundary land here.
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen error={props.error} retry={props.retry} />;
+}
 
 function ThemedApp() {
   const { resolved } = useTheme();

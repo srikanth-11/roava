@@ -187,7 +187,7 @@ export default function ProfileScreen() {
 
       <CurrencyPickerSheet
         ref={currencySheetRef}
-        label="Home currency"
+        label="Home"
         selected={homeCurrency}
         onSelect={onPickHomeCurrency}
       />

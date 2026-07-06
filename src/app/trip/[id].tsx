@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
 import { ArrowLeft, CalendarDays, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
@@ -13,6 +13,11 @@ import { PackingSection } from '@/features/trips/PackingSection';
 import { isAppError } from '@/services/errors';
 import { useDeleteTripMutation, useGetTripQuery } from '@/store/api';
 import { tripDayCount } from '@/types/trip';
+import { CrashScreen } from '@/components/shared/CrashScreen';
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <CrashScreen error={props.error} retry={props.retry} />;
+}
 
 const SECTIONS = ['Itinerary', 'Budget', 'Packing', 'Notes'] as const;
 type Section = (typeof SECTIONS)[number];

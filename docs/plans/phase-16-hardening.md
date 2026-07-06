@@ -14,11 +14,11 @@
 
 ## Tasks
 
-- [ ] Task 1: `CrashScreen` + root boundary + route `ErrorBoundary` exports on param routes
-- [ ] Task 2: `useSheetBackHandler` + adoption in all four sheet hosts
-- [ ] Task 3: Deep-link garbage-param audit + guard fixes
-- [ ] Task 4: Prod console strip (babel), release keystore + signing config (git-ignore verified), app.json sanity
-- [ ] Task 5: Gates; JOURNEY; commit; debrief; **wait for "Phase Approved"**
+- [x] Task 1: `CrashScreen` + root boundary + `ErrorBoundary` exports on all 5 param routes (destination id/weather/map, trip, flight) — JOURNEY 19.1
+- [x] Task 2: `useSheetBackHandler` inside all 3 sheet COMPONENTS (covers every instance; listener registered only while open) — 19.2
+- [x] Task 3: Garbage audit — zero fixes needed (guards were already everywhere); caught a "Home currency currency" copy bug — 19.3
+- [x] Task 4: babel prod console strip (error/warn kept); keystore + properties in git-ignored `keys/` (`git check-ignore` verified), Gradle block w/ debug fallback, durable recipe in `docs/release.md` — 19.4
+- [x] Task 5: Gates green; JOURNEY 19; commit; debrief; **wait for "Phase Approved"**
 
 **Exit criteria (code-level):** every param route exports ErrorBoundary; all sheets dismiss on hardware back by construction; keystore artifacts ignored by git (verified with `git status`); gates green.
 

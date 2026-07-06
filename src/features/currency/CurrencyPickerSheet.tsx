@@ -4,6 +4,7 @@ import { forwardRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Input, Text } from '@/components/ui';
+import { useSheetBackHandler } from '@/hooks/useSheetBackHandler';
 import { CURRENCY_META } from '@/lib/currencies';
 import { palette } from '@/lib/palette';
 
@@ -23,6 +24,7 @@ export const CurrencyPickerSheet = forwardRef<BottomSheetModal, CurrencyPickerSh
     const { colorScheme } = useColorScheme();
     const colors = palette[colorScheme ?? 'light'];
     const [query, setQuery] = useState('');
+    const onSheetChange = useSheetBackHandler();
 
     const q = query.trim().toLowerCase();
     const filtered = q
@@ -34,6 +36,7 @@ export const CurrencyPickerSheet = forwardRef<BottomSheetModal, CurrencyPickerSh
     return (
       <BottomSheetModal
         ref={ref}
+        onChange={onSheetChange}
         snapPoints={['70%']}
         enableDynamicSizing={false}
         backgroundStyle={{ backgroundColor: colors.surface, borderRadius: 24 }}
