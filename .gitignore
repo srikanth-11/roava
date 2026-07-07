@@ -57,3 +57,6 @@ example
 /docs/demo.md
 /docs/release.md
 /docs/plans/
+
+# local editor/agent config
+/.claude/
