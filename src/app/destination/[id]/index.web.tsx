@@ -1,7 +1,17 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
-import { Banknote, CloudSun, Compass, Luggage, MapPinned } from 'lucide-react-native';
+import {
+  Apple,
+  Banknote,
+  CloudSun,
+  Compass,
+  Download,
+  Luggage,
+  MapPinned,
+  Play,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 
 import { AppLogo } from '@/components/shared/AppLogo';
@@ -9,24 +19,38 @@ import { Icon, Text } from '@/components/ui';
 import { APP_STORE_URL, GET_APP_URL, MAKER, PLAY_STORE_URL } from '@/lib/links';
 import { useGetDestinationByIdQuery } from '@/store/api';
 
-/** Store badge — active when the link exists, "Coming soon" until the app ships. */
-function StoreButton({ label, href }: { label: string; href: string | null }) {
+/** Store badge — a light card; active when the link exists, "Coming soon" until then. */
+function StoreButton({
+  label,
+  icon,
+  href,
+}: {
+  label: string;
+  icon: LucideIcon;
+  href: string | null;
+}) {
+  const active = !!href;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={href ? `${label} — get Roava` : `${label} — coming soon`}
-      disabled={!href}
+      accessibilityLabel={active ? `${label} — get Roava` : `${label} — coming soon`}
+      disabled={!active}
       onPress={() => {
         if (href) void Linking.openURL(href).catch(() => {});
       }}
-      className={`rounded-xl bg-foreground px-6 py-3 ${href ? 'active:opacity-90' : 'opacity-60'}`}
+      className={`w-52 flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 ${
+        active ? 'active:opacity-90' : ''
+      }`}
     >
-      <Text variant="caption" className="text-background opacity-70">
-        {href ? 'Available on' : 'Coming soon'}
-      </Text>
-      <Text variant="label" className="text-background">
-        {label}
-      </Text>
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+        <Icon icon={icon} color="primary" size={24} />
+      </View>
+      <View>
+        <Text variant="caption" color="muted">
+          {active ? 'Get it on' : 'Coming soon'}
+        </Text>
+        <Text variant="label">{label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -178,15 +202,24 @@ export default function DestinationLandingWeb() {
           </View>
 
           {/* GET ROAVA */}
-          <View className="items-center gap-4 pt-4">
-            <Text variant="h3">Get Roava</Text>
+          <View className="items-center gap-4 pt-6">
+            <Text variant="h2">Get Roava</Text>
+            <Text variant="body-sm" color="muted" className="max-w-md text-center">
+              The Android and iOS apps are on their way to the stores. In the meantime, you can
+              install the Android build directly.
+            </Text>
             <View className="flex-row flex-wrap justify-center gap-3">
-              <StoreButton label="Google Play" href={PLAY_STORE_URL} />
-              <StoreButton label="App Store" href={APP_STORE_URL} />
+              <StoreButton label="Google Play" icon={Play} href={PLAY_STORE_URL} />
+              <StoreButton label="App Store" icon={Apple} href={APP_STORE_URL} />
             </View>
-            <Pressable accessibilityRole="button" onPress={getApp}>
-              <Text variant="caption" color="primary">
-                Or download the Android APK →
+            <Pressable
+              accessibilityRole="button"
+              onPress={getApp}
+              className="mt-1 flex-row items-center gap-2 rounded-full bg-primary px-7 py-4 active:opacity-90"
+            >
+              <Icon icon={Download} color="on-primary" size={20} />
+              <Text variant="label" color="on-primary">
+                Download for Android
               </Text>
             </Pressable>
           </View>
