@@ -11,6 +11,7 @@ import { PoiSection } from '@/features/destination/PoiSection';
 import { WeatherCard } from '@/features/destination/WeatherCard';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppStore';
 import { hapticLight } from '@/lib/haptics';
+import { destinationShareUrl } from '@/lib/links';
 import { isAppError } from '@/services/errors';
 import { useGetDestinationByIdQuery } from '@/store/api';
 import { favoriteToggled, selectIsFavorite } from '@/store/favoritesSlice';
@@ -96,7 +97,9 @@ export default function DestinationDetail() {
 
   const share = () => {
     void Share.share({
-      message: `Check out ${data.name}, ${data.country} on Roava → roava://destination/${data.id}`,
+      // Clean https link — opens the app on this destination when installed
+      // (Android App Links), shows a web page otherwise. No raw scheme.
+      message: `Check out ${data.name}, ${data.country} on Roava 🧭\n${destinationShareUrl(data.id)}`,
     }).catch(() => {
       // User dismissed the sheet or no share targets — never an error.
     });

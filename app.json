@@ -18,6 +18,20 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "roava.expo.app",
+              "pathPrefix": "/destination"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -58,6 +72,13 @@
         "projectId": "b3a588ca-2478-490d-9531-9a725bbde414"
       }
     },
-    "owner": "srikanth-11"
+    "owner": "srikanth-11",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b3a588ca-2478-490d-9531-9a725bbde414"
+    },
+    "ios": {}
   }
 }
