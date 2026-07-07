@@ -21,6 +21,7 @@ expo-env.d.ts
 # release signing (never commit keys or their passwords)
 *.keystore
 keys/keystore.properties
+credentials.json
 
 # Metro
 .metro-health-check*
@@ -48,3 +49,5 @@ example
 
 # env secrets (EXPO_PUBLIC_* still ship in the binary - free keys only)
 .env
+
+/docs

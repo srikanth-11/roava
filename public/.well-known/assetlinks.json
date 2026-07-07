@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kasir.roava",
+      "sha256_cert_fingerprints": [
+        "3E:B0:FF:6C:BB:79:4E:E4:44:28:90:BF:91:C6:4D:BB:29:64:AC:9B:54:1B:A9:20:DE:66:92:DD:20:86:E4:1A"
+      ]
+    }
+  }
+]
