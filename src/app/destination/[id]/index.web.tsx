@@ -2,13 +2,34 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { Banknote, CloudSun, Compass, Luggage, MapPinned } from 'lucide-react-native';
-import { ActivityIndicator, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Linking, Pressable, ScrollView, View } from 'react-native';
 
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Icon, Text } from '@/components/ui';
-import { GET_APP_URL } from '@/lib/links';
-import { palette } from '@/lib/palette';
+import { APP_STORE_URL, GET_APP_URL, MAKER, PLAY_STORE_URL } from '@/lib/links';
 import { useGetDestinationByIdQuery } from '@/store/api';
+
+/** Store badge — active when the link exists, "Coming soon" until the app ships. */
+function StoreButton({ label, href }: { label: string; href: string | null }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={href ? `${label} — get Roava` : `${label} — coming soon`}
+      disabled={!href}
+      onPress={() => {
+        if (href) void Linking.openURL(href).catch(() => {});
+      }}
+      className={`rounded-xl bg-foreground px-6 py-3 ${href ? 'active:opacity-90' : 'opacity-60'}`}
+    >
+      <Text variant="caption" className="text-background opacity-70">
+        {href ? 'Available on' : 'Coming soon'}
+      </Text>
+      <Text variant="label" className="text-background">
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 /**
  * Web-only landing for a shared destination link — NOT the RN detail screen.
@@ -156,19 +177,18 @@ export default function DestinationLandingWeb() {
             ))}
           </View>
 
-          {/* second CTA */}
-          <View className="items-center gap-3 pt-4">
-            <Pressable
-              accessibilityRole="button"
-              onPress={getApp}
-              className="flex-row items-center gap-2 rounded-full bg-primary px-7 py-4 active:opacity-90"
-            >
-              <Icon icon={Compass} color="on-primary" size={20} />
-              <Text variant="label" color="on-primary">
-                Get Roava
+          {/* GET ROAVA */}
+          <View className="items-center gap-4 pt-4">
+            <Text variant="h3">Get Roava</Text>
+            <View className="flex-row flex-wrap justify-center gap-3">
+              <StoreButton label="Google Play" href={PLAY_STORE_URL} />
+              <StoreButton label="App Store" href={APP_STORE_URL} />
+            </View>
+            <Pressable accessibilityRole="button" onPress={getApp}>
+              <Text variant="caption" color="primary">
+                Or download the Android APK →
               </Text>
             </Pressable>
-            {isLoading ? <ActivityIndicator color={palette.light.primary} /> : null}
           </View>
         </View>
 
@@ -178,6 +198,9 @@ export default function DestinationLandingWeb() {
             <AppLogo size={24} />
             <Text variant="label">Roava</Text>
           </View>
+          <Text variant="body-sm" color="muted">
+            Built by {MAKER}
+          </Text>
           <Text variant="caption" color="muted" className="text-center">
             Travel that works offline.
             {data?.photoCredit ? ` · Photo: ${data.photoCredit} / Unsplash` : ''} · Map data ©
