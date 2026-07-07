@@ -29,6 +29,7 @@ Format per entry: **Problem → Diagnosis → Solution → Lesson.**
 | 19  | Phase 16 · Production Hardening  | ErrorBoundary per route; disposable android/ signing            |
 | 20  | The First Release Build          | keystore.properties BOM trap; network-identity LAN break        |
 | 21  | Phase 18 · Map Pins & Distances  | Photon/OSRM recon; storage-pattern reuse; two-layer distance    |
+| 22  | Phase 19 · EAS + Shareable Links | cloud build; https App Links; secret-leak near-miss; web stubs  |
 
 ---
 
@@ -661,6 +662,34 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 
 ---
 
+## Chapter 22 — Phase 19: EAS + Shareable Links (2026-07-07)
+
+### 22.1 The secret that almost shipped — a failed .gitignore edit
+
+- **Problem:** `credentials.json` (keystore passwords, for EAS local signing) got committed. The `.gitignore` edit meant to exclude it had silently FAILED ("file modified since read"), so `git add -A` swept the secret in.
+- **Diagnosis:** `git check-ignore credentials.json` returned nothing (not ignored) and `git ls-files` showed it tracked in HEAD.
+- **Solution:** nothing was pushed (no remote) → `git rm --cached credentials.json`, fix `.gitignore`, `git commit --amend`. The original commit became unreferenced. Low severity (the password guards the keystore FILE, which was itself never committed), but removed cleanly.
+- **Lesson:** when adding a secret-bearing file, run `git check-ignore <file>` BEFORE `git add -A` — never trust that an ignore edit landed. Survival-kit rule 18.
+
+### 22.2 EAS install-deps failure = the ERESOLVE you've been hiding with --legacy-peer-deps
+
+- **Problem:** first cloud build died at the "Install dependencies" phase, "Unknown error."
+- **Diagnosis:** we'd been installing locally with `--legacy-peer-deps` for months (an eslint peer conflict). EAS's clean `npm install` has no such flag and hit the same ERESOLVE.
+- **Solution:** an `.npmrc` with `legacy-peer-deps=true` — makes every install, local and cloud, use it. Second build cleared the phase.
+- **Lesson:** a local install flag is invisible tech debt until CI runs a clean install. Encode install requirements in `.npmrc`, not in your shell history.
+
+### 22.3 Web export of a native-heavy app — four platform stubs
+
+- EAS Hosting (for the share fallback + the App-Links `assetlinks.json`) needs a successful `expo export -p web`, but three native-only modules break it: MapLibre (2 routes), MMKV (`storage.ts`), Google Sign-In (`auth.ts`). Fix: `.web.tsx`/`.web.ts` variants Metro resolves for web — map/flight route stubs, an AsyncStorage-only `storage.web.ts`, a mock-only `auth.web.ts`. Export then produced every route as static HTML + served `public/.well-known/assetlinks.json` at the domain root.
+- **Lesson:** platform extensions (`.web.tsx`) keep native modules out of the web bundle without polluting the shared code with `Platform.OS` branches. One stub per native-only entry point.
+
+### 22.4 The share fix, end to end
+
+- Raw `roava://destination/id` → `https://roava.expo.app/destination/id`. Chain: `eas deploy --prod` serves the static web build + `assetlinks.json` (release SHA-256) at a stable domain; `app.json intentFilters autoVerify` for that host makes Android verify+capture the link; `lib/links.ts` centralizes the URL; the Share message uses it. Installed → opens the app on the destination; not → the web page. `curl` confirmed `200 application/json` on the hosted assetlinks before wiring.
+- **Lesson:** a custom scheme can never be a universal link — App Links fundamentally require a domain you control serving the association file. There's no code-only shortcut.
+
+---
+
 ## Running Tally — Windows RN Developer Survival Kit
 
 | #   | Rule                                                                                                        | Origin |
@@ -682,3 +711,5 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 | 15  | A fix with NO effect (not wrong — absent) → verify the running bundle first; airplane toggles kill HMR      | 16.4   |
 | 16  | Files Java parses must be BOM-free — PS 5.1 `-Encoding utf8` writes a BOM that corrupts the first key       | 20.1   |
 | 17  | Subnet changed? Re-check IP-pinned env vars, firewall rule profiles, and the Public/Private category        | 20.2   |
+| 18  | Adding a secret-bearing file → `git check-ignore <file>` BEFORE `git add -A`; ignore edits can silently fail | 22.1   |
+| 19  | Local `--legacy-peer-deps` is invisible CI debt → encode it in `.npmrc` so clean cloud installs match        | 22.2   |
