@@ -26,7 +26,7 @@ const client = createHttpClient({
   baseURL: 'https://overpass-api.de/api',
   timeout: 15_000, // heavier engine than a REST lookup — give it headroom
   headers: {
-    'User-Agent': 'Roava/0.1 (Expo learning project)',
+    'User-Agent': 'Roava/1.0 (+https://roava.expo.app)',
     'Content-Type': 'application/x-www-form-urlencoded',
   },
 });

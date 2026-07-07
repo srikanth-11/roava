@@ -1,5 +1,7 @@
 {
   "name": "roava",
+  "description": "An offline-first travel companion — destinations, weather, maps, currency, live flights, and trip planning.",
+  "license": "MIT",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {

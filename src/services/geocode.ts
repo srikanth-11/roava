@@ -48,7 +48,7 @@ export interface GeoResult {
 const client = createHttpClient({
   baseURL: 'https://photon.komoot.io',
   timeout: 8000,
-  headers: { 'User-Agent': 'Roava/0.1 (Expo learning project)' },
+  headers: { 'User-Agent': 'Roava/1.0 (+https://roava.expo.app)' },
 });
 
 function labelOf(p: PhotonProperties): string {

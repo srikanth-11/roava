@@ -33,7 +33,7 @@ export interface RouteResult {
 const client = createHttpClient({
   baseURL: 'https://router.project-osrm.org',
   timeout: 12_000,
-  headers: { 'User-Agent': 'Roava/0.1 (Expo learning project)' },
+  headers: { 'User-Agent': 'Roava/1.0 (+https://roava.expo.app)' },
 });
 
 export async function getRoute(from: LatLon, to: LatLon): Promise<RouteResult> {

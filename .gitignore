@@ -49,3 +49,11 @@ example
 
 # env secrets (EXPO_PUBLIC_* still ship in the binary - free keys only)
 .env
+
+# internal working docs — kept local, not published to the public repo
+/CLAUDE.md
+/AGENTS.md
+/docs/JOURNEY.md
+/docs/demo.md
+/docs/release.md
+/docs/plans/
