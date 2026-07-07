@@ -1,3 +1,4 @@
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import {
   Camera,
   GeoJSONSource,
@@ -9,21 +10,38 @@ import {
 } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
-import { ArrowLeft, LocateOff, X } from 'lucide-react-native';
+import { ArrowLeft, LocateOff, Navigation, Ruler, Search, Trash2, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 
-import { Badge, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { Badge, Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
+import { CrashScreen } from '@/components/shared/CrashScreen';
 import { PoiRow } from '@/features/destination/PoiSection';
+import { AddPoiSheet, type AddPoiValues } from '@/features/map/AddPoiSheet';
+import {
+  customPoisToFeatureCollection,
+  lineToFeatureCollection,
+  poisToFeatureCollection,
+  pointsToFeatureCollection,
+} from '@/features/map/geojson';
+import { PlaceSearchSheet } from '@/features/map/PlaceSearchSheet';
 import { useOnline } from '@/hooks/useOnline';
-import { poisToFeatureCollection } from '@/features/map/geojson';
+import { formatDistance, formatDuration, haversineMeters, type LatLon } from '@/lib/geo';
+import { hapticSuccess } from '@/lib/haptics';
 import { MAP_STYLES, OSM_ATTRIBUTION } from '@/lib/mapStyles';
 import { palette } from '@/lib/palette';
 import type { Poi } from '@/repositories/pois';
+import type { GeoResult } from '@/services/geocode';
 import { isAppError } from '@/services/errors';
-import { useGetMapPoisQuery } from '@/store/api';
-import { CrashScreen } from '@/components/shared/CrashScreen';
+import { getRoute } from '@/services/routing';
+import {
+  useAddCustomPoiMutation,
+  useDeleteCustomPoiMutation,
+  useGetCustomPoisQuery,
+  useGetMapPoisQuery,
+} from '@/store/api';
+import type { CustomPoi } from '@/types/customPoi';
 
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <CrashScreen error={props.error} retry={props.retry} />;
@@ -31,8 +49,12 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 const DEFAULT_ZOOM = 12.5;
 
+/** A tapped marker — OSM sight or a user pin; `source` discriminates them. */
+type SelectedMarker = Poi | CustomPoi;
+
 export default function DestinationMap() {
   const params = useLocalSearchParams<{ id: string; name?: string; lat?: string; lon?: string }>();
+  const destinationId = String(params.id ?? '');
   const lat = Number(params.lat);
   const lon = Number(params.lon);
   const cityName = params.name ?? 'Destination';
@@ -47,22 +69,141 @@ export default function DestinationMap() {
     { lat, lon },
     { skip: !hasCoords },
   );
+  const { data: customPois } = useGetCustomPoisQuery(destinationId, { skip: !destinationId });
+  const [addCustomPoi, { isLoading: adding }] = useAddCustomPoiMutation();
+  const [deleteCustomPoi] = useDeleteCustomPoiMutation();
 
   const cameraRef = useRef<CameraRef>(null);
   const sourceRef = useRef<GeoJSONSourceRef>(null);
-  const [selected, setSelected] = useState<Poi | null>(null);
+  const searchSheetRef = useRef<BottomSheetModal>(null);
+  const addSheetRef = useRef<BottomSheetModal>(null);
+
+  const [selected, setSelected] = useState<SelectedMarker | null>(null);
   const [mapFailed, setMapFailed] = useState(false);
   const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
+  const [userLoc, setUserLoc] = useState<LatLon | null>(null);
+  // The pin being placed but not yet saved (long-press or search result).
+  const [provisional, setProvisional] = useState<{
+    lat: number;
+    lon: number;
+    name?: string;
+  } | null>(null);
+  const [addSeed, setAddSeed] = useState(0);
+  // A drawn route (from-you or between measure points) + its numbers.
+  const [route, setRoute] = useState<{
+    coords: LatLon[];
+    distanceM: number;
+    durationS: number;
+  } | null>(null);
+  const [routing, setRouting] = useState(false);
+  const [routeFailed, setRouteFailed] = useState(false);
+  // Measure mode: collect two points → straight-line (+ optional route).
+  const [measuring, setMeasuring] = useState(false);
+  const [measurePts, setMeasurePts] = useState<LatLon[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    void Location.requestForegroundPermissionsAsync().then(({ status }) => {
-      if (!cancelled) setLocationGranted(status === 'granted');
+    void Location.requestForegroundPermissionsAsync().then(async ({ status }) => {
+      if (cancelled) return;
+      setLocationGranted(status === 'granted');
+      if (status !== 'granted') return;
+      try {
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (!cancelled) setUserLoc({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      } catch {
+        // Location is a nicety here — the map still works without a fix.
+      }
     });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const openAddSheet = (pin: { lat: number; lon: number; name?: string }) => {
+    setSelected(null);
+    setProvisional(pin);
+    setAddSeed((s) => s + 1);
+    addSheetRef.current?.present();
+  };
+
+  const onLongPress = (e: { nativeEvent: { lngLat: [number, number] } }) => {
+    const [pLon, pLat] = e.nativeEvent.lngLat;
+    openAddSheet({ lat: pLat, lon: pLon });
+  };
+
+  const onSearchSelect = (r: GeoResult) => {
+    searchSheetRef.current?.dismiss();
+    cameraRef.current?.easeTo({ center: [r.lon, r.lat], zoom: 15, duration: 500 });
+    // Let the search sheet finish dismissing before presenting the add sheet.
+    setTimeout(() => openAddSheet({ lat: r.lat, lon: r.lon, name: r.name }), 250);
+  };
+
+  const onAddSubmit = (values: AddPoiValues) => {
+    if (!provisional) return;
+    void addCustomPoi({
+      destinationId,
+      name: values.name,
+      category: values.category,
+      note: values.note,
+      lat: provisional.lat,
+      lon: provisional.lon,
+    })
+      .unwrap()
+      .then(() => {
+        hapticSuccess();
+        addSheetRef.current?.dismiss();
+        setProvisional(null);
+      })
+      .catch(() => {
+        // Error surfaces via the mutation state; keep the sheet open to retry.
+      });
+  };
+
+  const onDeleteSelected = () => {
+    if (!selected || selected.source !== 'custom') return;
+    void deleteCustomPoi({ id: selected.id, destinationId })
+      .unwrap()
+      .then(() => setSelected(null))
+      .catch(() => {});
+  };
+
+  const clearRoute = () => {
+    setRoute(null);
+    setRouteFailed(false);
+  };
+
+  const runRoute = (from: LatLon, to: LatLon) => {
+    setRouting(true);
+    setRouteFailed(false);
+    void getRoute(from, to)
+      .then((r) => setRoute({ coords: r.coords, distanceM: r.distanceM, durationS: r.durationS }))
+      .catch(() => setRouteFailed(true))
+      .finally(() => setRouting(false));
+  };
+
+  const selectMarker = (m: SelectedMarker) => {
+    clearRoute();
+    setSelected(m);
+  };
+
+  const addMeasurePoint = (p: LatLon) => {
+    clearRoute();
+    setMeasurePts((pts) => (pts.length >= 2 ? [p] : [...pts, p]));
+  };
+
+  const toggleMeasure = () => {
+    setSelected(null);
+    clearRoute();
+    setMeasurePts([]);
+    setMeasuring((v) => !v);
+  };
+
+  const [measureA, measureB] = measurePts;
+  const measureDistance = measureA && measureB ? haversineMeters(measureA, measureB) : 0;
+  const selectedDistance =
+    userLoc && selected ? haversineMeters(userLoc, { lat: selected.lat, lon: selected.lon }) : null;
 
   if (!hasCoords) {
     return (
@@ -97,6 +238,12 @@ export default function DestinationMap() {
             attribution={false}
             logo={false}
             onDidFailLoadingMap={() => setMapFailed(true)}
+            onLongPress={onLongPress}
+            onPress={(e) => {
+              if (!measuring) return;
+              const [pLon, pLat] = e.nativeEvent.lngLat;
+              addMeasurePoint({ lat: pLat, lon: pLon });
+            }}
           >
             <Camera ref={cameraRef} initialViewState={{ center: [lon, lat], zoom: DEFAULT_ZOOM }} />
 
@@ -113,9 +260,11 @@ export default function DestinationMap() {
                 if (!feature || feature.geometry.type !== 'Point') return;
                 const [fLon, fLat] = feature.geometry.coordinates as [number, number];
                 const props = feature.properties ?? {};
+                if (measuring) {
+                  addMeasurePoint({ lat: fLat, lon: fLon });
+                  return;
+                }
                 if (props.cluster) {
-                  // Cluster tap → ask the source how deep the cluster unpacks,
-                  // then ease the camera there; MapLibre re-clusters live.
                   void sourceRef.current
                     ?.getClusterExpansionZoom(props.cluster_id as number)
                     .then((zoom) => {
@@ -128,11 +277,10 @@ export default function DestinationMap() {
                     .catch(() => {});
                 } else {
                   const poi = (data ?? []).find((p) => p.id === props.id);
-                  if (poi) setSelected(poi);
+                  if (poi) selectMarker(poi);
                 }
               }}
             >
-              {/* Cluster bubbles */}
               <Layer
                 type="circle"
                 id="cluster-circles"
@@ -155,7 +303,6 @@ export default function DestinationMap() {
                 }}
                 paint={{ 'text-color': colors.onPrimary }}
               />
-              {/* Single POIs */}
               <Layer
                 type="circle"
                 id="poi-dots"
@@ -168,12 +315,120 @@ export default function DestinationMap() {
                 }}
               />
             </GeoJSONSource>
+
+            {/* User pins — own source, un-clustered, violet so they stand apart */}
+            <GeoJSONSource
+              id="custom-pois"
+              data={customPoisToFeatureCollection(customPois ?? [])}
+              onPress={(event) => {
+                const feature = event.nativeEvent.features[0];
+                if (measuring) {
+                  if (feature?.geometry.type === 'Point') {
+                    const [cLon, cLat] = feature.geometry.coordinates as [number, number];
+                    addMeasurePoint({ lat: cLat, lon: cLon });
+                  }
+                  return;
+                }
+                const props = feature?.properties ?? {};
+                const cp = (customPois ?? []).find((p) => p.id === props.id);
+                if (cp) selectMarker(cp);
+              }}
+            >
+              <Layer
+                type="circle"
+                id="custom-dots"
+                paint={{
+                  'circle-color': colors.mapCustom,
+                  'circle-radius': 8,
+                  'circle-stroke-width': 2.5,
+                  'circle-stroke-color': colors.surface,
+                }}
+              />
+            </GeoJSONSource>
+
+            {/* Provisional pin — where a place will drop once confirmed */}
+            {provisional ? (
+              <GeoJSONSource
+                id="provisional"
+                data={{
+                  type: 'FeatureCollection',
+                  features: [
+                    {
+                      type: 'Feature',
+                      geometry: { type: 'Point', coordinates: [provisional.lon, provisional.lat] },
+                      properties: {},
+                    },
+                  ],
+                }}
+              >
+                <Layer
+                  type="circle"
+                  id="provisional-ring"
+                  paint={{
+                    'circle-radius': 13,
+                    'circle-color': colors.mapCustom,
+                    'circle-opacity': 0.25,
+                  }}
+                />
+                <Layer
+                  type="circle"
+                  id="provisional-dot"
+                  paint={{
+                    'circle-radius': 6,
+                    'circle-color': colors.mapCustom,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': colors.surface,
+                  }}
+                />
+              </GeoJSONSource>
+            ) : null}
+
+            {/* Drawn route (from-you or between measure points) */}
+            {route ? (
+              <GeoJSONSource id="route" data={lineToFeatureCollection(route.coords)}>
+                <Layer
+                  type="line"
+                  id="route-line"
+                  layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                  paint={{ 'line-color': colors.mapRoute, 'line-width': 5, 'line-opacity': 0.85 }}
+                />
+              </GeoJSONSource>
+            ) : null}
+
+            {/* Measure-mode straight line + its endpoints */}
+            {measurePts.length === 2 ? (
+              <GeoJSONSource id="measure-line" data={lineToFeatureCollection(measurePts)}>
+                <Layer
+                  type="line"
+                  id="measure-line-l"
+                  layout={{ 'line-cap': 'round' }}
+                  paint={{
+                    'line-color': colors.foreground,
+                    'line-width': 3,
+                    'line-dasharray': [2, 2],
+                  }}
+                />
+              </GeoJSONSource>
+            ) : null}
+            {measurePts.length > 0 ? (
+              <GeoJSONSource id="measure-pts" data={pointsToFeatureCollection(measurePts)}>
+                <Layer
+                  type="circle"
+                  id="measure-dots"
+                  paint={{
+                    'circle-radius': 6,
+                    'circle-color': colors.foreground,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': colors.surface,
+                  }}
+                />
+              </GeoJSONSource>
+            ) : null}
           </MapLibreMap>
         )}
 
-        {/* Top overlay: back + title + query state. The OfflineBanner owns the
-            top edge when offline — drop the header below it or its controls
-            (incl. the POI retry chip) become unreachable exactly when needed. */}
+        {/* Top overlay: back + title + query state + search. Drops below the
+            OfflineBanner when offline so its controls stay reachable. */}
         <View
           className={`absolute inset-x-0 top-0 flex-row items-center gap-3 px-4 ${
             online ? 'pt-12' : 'pt-28'
@@ -190,7 +445,7 @@ export default function DestinationMap() {
           <View className="rounded-full bg-surface px-4 py-2">
             <Text variant="label">{cityName}</Text>
           </View>
-          {isLoading ? <Skeleton className="h-8 w-24 rounded-full" /> : null}
+          {isLoading ? <Skeleton className="h-8 w-20 rounded-full" /> : null}
           {error ? (
             <Pressable
               accessibilityRole="button"
@@ -203,7 +458,53 @@ export default function DestinationMap() {
               </Text>
             </Pressable>
           ) : null}
+          <View className="flex-1" />
+          {!mapFailed ? (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={measuring ? 'Exit measure mode' : 'Measure distance'}
+                onPress={toggleMeasure}
+                className={`h-12 w-12 items-center justify-center rounded-full ${
+                  measuring ? 'bg-primary' : 'bg-surface'
+                }`}
+              >
+                <Icon
+                  icon={Ruler}
+                  color={measuring ? 'on-primary' : 'default'}
+                  accessibilityLabel="Measure"
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Search to add a place"
+                onPress={() => searchSheetRef.current?.present()}
+                className="h-12 w-12 items-center justify-center rounded-full bg-surface"
+              >
+                <Icon icon={Search} accessibilityLabel="Search" />
+              </Pressable>
+            </>
+          ) : null}
         </View>
+
+        {/* Route summary — shown while a route is drawn (needs granted location,
+            so it never collides with the location-denied banner) */}
+        {route ? (
+          <View className="absolute inset-x-4 top-28 flex-row items-center gap-2 rounded-lg border border-border bg-surface p-3">
+            <Icon icon={Navigation} size={16} color="primary" />
+            <Text variant="caption" className="flex-1">
+              {formatDistance(route.distanceM)} · {formatDuration(route.durationS)} driving
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear route"
+              hitSlop={8}
+              onPress={clearRoute}
+            >
+              <Icon icon={X} size={16} color="muted" accessibilityLabel="Clear route" />
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* Location denied — quiet, first-class */}
         {locationGranted === false && !mapFailed ? (
@@ -225,26 +526,140 @@ export default function DestinationMap() {
           </View>
         ) : null}
 
-        {/* Selected POI callout */}
-        {selected ? (
-          <View className="absolute inset-x-4 bottom-10 flex-row items-center gap-3 rounded-lg border border-border bg-surface p-4">
-            <View className="flex-1 gap-1">
-              <Text variant="label" numberOfLines={1}>
-                {selected.name}
+        {/* Long-press hint — only until the first custom pin exists */}
+        {!mapFailed && !measuring && !selected && (customPois?.length ?? 0) === 0 ? (
+          <View className="absolute inset-x-4 bottom-10 items-center">
+            <View className="rounded-full bg-surface/90 px-3 py-1.5">
+              <Text variant="caption" color="muted">
+                Long-press the map to drop a pin
               </Text>
-              <View className="flex-row">
-                <Badge label={selected.category} variant="outline" />
-              </View>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close details"
-              hitSlop={8}
-              onPress={() => setSelected(null)}
-              className="h-12 w-12 items-center justify-center"
-            >
-              <Icon icon={X} color="muted" accessibilityLabel="Close" />
-            </Pressable>
+          </View>
+        ) : null}
+
+        {/* Measure mode banner */}
+        {measuring ? (
+          <View className="absolute inset-x-4 bottom-10 gap-3 rounded-lg border border-border bg-surface p-4">
+            <View className="flex-row items-center gap-3">
+              <Icon icon={Ruler} color="primary" />
+              <Text variant="label" className="flex-1">
+                {measurePts.length === 0
+                  ? 'Tap two points to measure'
+                  : measurePts.length === 1
+                    ? 'Tap the second point'
+                    : `${formatDistance(measureDistance)} straight-line`}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Exit measure mode"
+                hitSlop={8}
+                onPress={toggleMeasure}
+                className="h-10 w-10 items-center justify-center"
+              >
+                <Icon icon={X} color="muted" accessibilityLabel="Exit" />
+              </Pressable>
+            </View>
+            <View className="flex-row flex-wrap items-center gap-2">
+              {userLoc ? (
+                <Button
+                  label="From my location"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => userLoc && addMeasurePoint(userLoc)}
+                />
+              ) : null}
+              {measurePts.length === 2 ? (
+                <Button
+                  label={routing ? 'Routing…' : 'Route'}
+                  size="sm"
+                  icon={Navigation}
+                  loading={routing}
+                  onPress={() => {
+                    const [a, b] = measurePts;
+                    if (a && b) runRoute(a, b);
+                  }}
+                />
+              ) : null}
+              {measurePts.length > 0 ? (
+                <Button
+                  label="Reset"
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => {
+                    setMeasurePts([]);
+                    clearRoute();
+                  }}
+                />
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Selected marker callout */}
+        {selected && !measuring ? (
+          <View className="absolute inset-x-4 bottom-10 gap-3 rounded-lg border border-border bg-surface p-4">
+            <View className="flex-row items-center gap-3">
+              <View className="flex-1 gap-1">
+                <Text variant="label" numberOfLines={1}>
+                  {selected.name}
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  <Badge
+                    label={selected.category}
+                    variant={selected.source === 'custom' ? 'default' : 'outline'}
+                  />
+                  {selectedDistance != null ? (
+                    <Text variant="caption" color="muted">
+                      {formatDistance(selectedDistance)} away
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+              {selected.source === 'custom' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${selected.name}`}
+                  hitSlop={8}
+                  onPress={onDeleteSelected}
+                  className="h-12 w-12 items-center justify-center"
+                >
+                  <Icon icon={Trash2} color="destructive" accessibilityLabel="Delete" />
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close details"
+                hitSlop={8}
+                onPress={() => {
+                  setSelected(null);
+                  clearRoute();
+                }}
+                className="h-12 w-12 items-center justify-center"
+              >
+                <Icon icon={X} color="muted" accessibilityLabel="Close" />
+              </Pressable>
+            </View>
+            {userLoc ? (
+              <View className="flex-row items-center gap-2">
+                <Button
+                  label={routing ? 'Routing…' : 'Route from you'}
+                  size="sm"
+                  variant="outline"
+                  icon={Navigation}
+                  loading={routing}
+                  onPress={() => {
+                    if (userLoc && selected) {
+                      runRoute(userLoc, { lat: selected.lat, lon: selected.lon });
+                    }
+                  }}
+                />
+                {routeFailed ? (
+                  <Text variant="caption" color="muted">
+                    Route unavailable
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -257,6 +672,15 @@ export default function DestinationMap() {
           </View>
         ) : null}
       </View>
+
+      <PlaceSearchSheet ref={searchSheetRef} near={{ lat, lon }} onSelect={onSearchSelect} />
+      <AddPoiSheet
+        ref={addSheetRef}
+        seed={addSeed}
+        defaultName={provisional?.name}
+        onSubmit={onAddSubmit}
+        submitting={adding}
+      />
     </Screen>
   );
 }

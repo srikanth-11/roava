@@ -17,6 +17,10 @@ export const palette = {
     destructive: 'rgb(220 38 38)',
     success: 'rgb(22 163 74)',
     onImage: 'rgb(255 255 255)',
+    /** Map-only: user pins (violet) and routes (blue) — distinct from the
+     * teal OSM dots and orange clusters. Used in MapLibre paint props. */
+    mapCustom: 'rgb(124 58 237)',
+    mapRoute: 'rgb(37 99 235)',
   },
   dark: {
     primary: 'rgb(251 146 60)',
@@ -30,6 +34,8 @@ export const palette = {
     destructive: 'rgb(248 113 113)',
     success: 'rgb(74 222 128)',
     onImage: 'rgb(255 255 255)',
+    mapCustom: 'rgb(167 139 250)',
+    mapRoute: 'rgb(96 165 250)',
   },
 } as const;
 

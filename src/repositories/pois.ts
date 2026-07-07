@@ -8,6 +8,8 @@ export interface Poi {
   category: PoiCategory;
   lat: number;
   lon: number;
+  /** Discriminator so the map's callout can treat OSM and custom pins as one. */
+  source: 'osm';
 }
 
 function categoryOf(tags: Record<string, string>): PoiCategory | null {
@@ -34,7 +36,7 @@ function toPois(elements: OverpassElement[]): Poi[] {
     const nameKey = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (seen.has(nameKey)) continue;
     seen.add(nameKey);
-    pois.push({ id: `${el.type}-${el.id}`, name, category, lat, lon });
+    pois.push({ id: `${el.type}-${el.id}`, name, category, lat, lon, source: 'osm' });
   }
   return pois;
 }

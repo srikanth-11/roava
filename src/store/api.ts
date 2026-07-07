@@ -1,5 +1,6 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 
+import { customPoisRepository, type CreateCustomPoiInput } from '@/repositories/customPois';
 import { currencyRepository, type CurrencyRate, type RateTable } from '@/repositories/currency';
 import { destinationsRepository } from '@/repositories/destinations';
 import { flightsRepository, type Flight } from '@/repositories/flights';
@@ -13,7 +14,9 @@ import {
 } from '@/repositories/trips';
 import { weatherRepository, type FullWeather, type WeatherSnapshot } from '@/repositories/weather';
 import { toAppError, type AppError } from '@/services/errors';
+import { searchPlaces, type GeoResult } from '@/services/geocode';
 import { trendingCached } from '@/store/cacheSlice';
+import type { CustomPoi } from '@/types/customPoi';
 import type { Destination, DestinationDetail } from '@/types/destination';
 import type { Trip } from '@/types/trip';
 
@@ -25,7 +28,7 @@ import type { Trip } from '@/types/trip';
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fakeBaseQuery<AppError>(),
-  tagTypes: ['Trending', 'Trips'],
+  tagTypes: ['Trending', 'Trips', 'CustomPois'],
   endpoints: (builder) => ({
     searchDestinations: builder.query<Destination[], { query: string } & SearchFilters>({
       // `signal` aborts superseded requests at the socket when the arg changes.
@@ -141,6 +144,48 @@ export const api = createApi({
       },
       keepUnusedDataFor: 600,
     }),
+    getCustomPois: builder.query<CustomPoi[], string>({
+      providesTags: (_r, _e, destinationId) => [{ type: 'CustomPois', id: destinationId }],
+      queryFn: async (destinationId) => {
+        try {
+          return { data: await customPoisRepository.getForDestination(destinationId) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    addCustomPoi: builder.mutation<CustomPoi, CreateCustomPoiInput>({
+      invalidatesTags: (_r, _e, { destinationId }) => [{ type: 'CustomPois', id: destinationId }],
+      queryFn: async (input) => {
+        try {
+          return { data: await customPoisRepository.add(input) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    deleteCustomPoi: builder.mutation<null, { id: string; destinationId: string }>({
+      invalidatesTags: (_r, _e, { destinationId }) => [{ type: 'CustomPois', id: destinationId }],
+      queryFn: async ({ id }) => {
+        try {
+          await customPoisRepository.remove(id);
+          return { data: null };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+    }),
+    geocodePlaces: builder.query<GeoResult[], { query: string; lat: number; lon: number }>({
+      // `signal` aborts a superseded typeahead request at the socket.
+      queryFn: async ({ query, lat, lon }, { signal }) => {
+        try {
+          return { data: await searchPlaces(query, { lat, lon }, signal) };
+        } catch (error) {
+          return { error: toAppError(error) };
+        }
+      },
+      keepUnusedDataFor: 30,
+    }),
     getTrips: builder.query<Trip[], void>({
       providesTags: ['Trips'],
       queryFn: async () => {
@@ -210,9 +255,13 @@ export const api = createApi({
 });
 
 export const {
+  useAddCustomPoiMutation,
   useCreateTripMutation,
+  useDeleteCustomPoiMutation,
   useDeleteTripMutation,
+  useGeocodePlacesQuery,
   useGetCurrencyRateQuery,
+  useGetCustomPoisQuery,
   useGetDestinationByIdQuery,
   useGetFlightStateQuery,
   useGetFullWeatherQuery,

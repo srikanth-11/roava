@@ -27,6 +27,8 @@ Format per entry: **Problem → Diagnosis → Solution → Lesson.**
 | 17  | Phase 14 · Settings              | constant→setting migration; compiler effect rule 3rd hit        |
 | 18  | Phase 15 · Polish                | the audit that found nothing; motion presets; StaleBadge        |
 | 19  | Phase 16 · Production Hardening  | ErrorBoundary per route; disposable android/ signing            |
+| 20  | The First Release Build          | keystore.properties BOM trap; network-identity LAN break        |
+| 21  | Phase 18 · Map Pins & Distances  | Photon/OSRM recon; storage-pattern reuse; two-layer distance    |
 
 ---
 
@@ -626,6 +628,36 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 - **Diagnosis:** three stacked flaws only the REAL Google path could expose (mock's no-op signOut hid them through every emulator pass): ① `GoogleAuthRepository.signOut()` never called `ensureConfigured()`, so on any restored-session process the native module threw immediately; ② the thunk ran the provider call BEFORE `clearSession()`, so the throw skipped the local wipe and no `rejected` reducer existed; ③ the profile screen navigated without `unwrap()`, so the UI _looked_ signed out while Redux + SecureStore still held the session.
 - **Solution:** provider sign-out wrapped best-effort (`try/catch` → always `clearSession()`); `signOut.rejected` reducer clears state as defense-in-depth; `ensureConfigured()` added to the Google signOut path.
 - **Lesson:** local sign-out must never be hostage to a provider call — revoke remotely best-effort, clear locally always. And a mock whose failure paths are no-ops verifies the happy path only; the first real provider finds the rest.
+
+---
+
+## Chapter 21 — Phase 18: Map Custom Pins & Distances (2026-07-07)
+
+### 21.1 Recon before code, again — two new keyless services
+
+- Before writing a line of UI, hit the real Photon and OSRM endpoints (the 8.1 discipline). Findings that shaped the code: both return `[lon, lat]` (GeoJSON order — the same reversal `geojson.ts` already guards); Photon's `name` is **sometimes absent** (addresses) and occasionally bilingual → a `labelOf()` fallback chain (name → street → city → "Unnamed place"); OSRM answers `code:"Ok"` with `distance`(m)/`duration`(s)/`geometry`(LineString). Both accepted the Overpass-style `User-Agent`.
+- **Lesson:** an API's docs tell you the happy shape; a live call tells you the _absent_ fields. Ten minutes of recon wrote three defensive branches that guesswork would have shipped as crashes.
+
+### 21.2 The storage pattern is now a template
+
+- `customPoisRepository` is the Phase 12 trips repository with the nouns swapped: one versioned MMKV document, zod-validated on load, corruption-recovery stash, migrate seam. First-mutation RTK wiring (`CustomPois` tag) is the same shape as trips. Building it was mechanical — the third time this pattern lands (trips, then here), it's proven boilerplate, not a decision.
+- **Lesson:** a good seam pays compound interest. The interface bet (Phase 4 AppStorage), the versioned-doc pattern (Phase 12) — each new local feature gets cheaper.
+
+### 21.3 Custom pins get their own source, deliberately
+
+- User pins render in a SEPARATE un-clustered `GeoJSONSource` in a new `mapCustom` violet — not merged into the OSM clustered source. Reason: a user's five hand-picked places must never dissolve into an orange "23" cluster bubble; they're the whole point of the screen. Third map color (teal OSM dots, orange clusters, violet pins) + a blue `mapRoute` line, all contrast-checked as tokens.
+- **Lesson:** clustering is right for discovered data, wrong for curated data. Same renderer, different source, different intent.
+
+### 21.4 Distance in two layers — floor and upgrade
+
+- Every distance answer has a floor that always works: `haversineMeters` (pure, offline, instant) drives the callout's "2.3 km away" and the measure mode's A↔B line. OSRM's road route + ETA is the **upgrade** layered on top, online only, degrading silently to the haversine floor when the best-effort server or the network is absent ("Route unavailable").
+- This mirrors the whole app's doctrine (cache floor + live upgrade, Phase 5/10): never let the fancy version's failure remove the honest baseline.
+- **Lesson:** offline-first isn't only about caching remote data — it's a habit of always shipping a computable floor beneath every networked nicety.
+
+### 21.5 `noUncheckedIndexedAccess` earned its keep
+
+- `haversineMeters(measurePts[0], measurePts[1])` failed to compile — the tsconfig flag flagged that a 2-element array's `[0]` is still `T | undefined` to the type system. Destructuring with an explicit `measureA && measureB` guard is honest about the empty/one-point states the measure mode genuinely passes through.
+- **Lesson:** the strict flag that feels pedantic on a length-checked array is the same flag that catches the off-by-one on an unchecked one. Let it win.
 
 ---
 

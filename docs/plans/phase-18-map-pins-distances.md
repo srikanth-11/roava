@@ -14,11 +14,11 @@
 
 ## Tasks
 
-- [ ] **Task 1 — Geo foundations + recon.** Live-API recon on Photon (search shape, rate policy) and OSRM (route response, geometry) → logged. `lib/geo.ts` (`haversineMeters`, `formatDistance`, `LatLon`). Extend the marker model with a `source: 'osm' | 'custom'` discriminator; `CustomPoi` type.
-- [ ] **Task 2 — Custom POIs data layer.** `types/customPoi.ts` (zod), `repositories/customPois.ts` (versioned MMKV doc keyed by destinationId, migrate seam, recovery stash, CRUD), RTK query + two mutations with `CustomPois` tag.
-- [ ] **Task 3 — Add flows + distinct-color rendering.** `services/geocode.ts` (Photon typeahead, keyless, User-Agent, AppError). Search button → debounced results sheet → provisional pin → confirm sheet (name/category/note) → add. `onLongPress` → provisional pin → same confirm sheet. Custom pins render in their own source/color/glyph; tap → callout with delete.
-- [ ] **Task 4 — Distances.** `services/routing.ts` (OSRM → {distanceM, durationS, geometry}). Callout gains "X km away" (haversine, instant) + "Route" action → drawn polyline (`mapRoute`) + "12 km · 24 min" label, degrading to haversine offline. **Measure mode** toolbar toggle: pick A + B (POI tap or long-press; "from me" seeds A with user location) → line + distance; optional route.
-- [ ] **Task 5 — Close-out.** Gates (tsc + lint); JOURNEY chapter; commit; debrief; **wait for "Phase Approved."**
+- [x] **Task 1 — Geo foundations + recon.** Photon + OSRM hit live, shapes logged (JOURNEY 21.1). `lib/geo.ts` (`haversineMeters`, `formatDistance`, `formatDuration`, `LatLon`). `Poi` gained `source: 'osm'`; `CustomPoi` carries `source: 'custom'` — one selected-marker union.
+- [x] **Task 2 — Custom POIs data layer.** `types/customPoi.ts` (zod, 6 categories), `repositories/customPois.ts` (versioned MMKV doc keyed by destinationId, migrate seam, recovery stash, CRUD), RTK `getCustomPois` + `addCustomPoi`/`deleteCustomPoi` w/ `CustomPois` tag (21.2).
+- [x] **Task 3 — Add flows + distinct color.** `services/geocode.ts` (Photon typeahead, keyless, User-Agent, label fallback). `PlaceSearchSheet` (debounced RTK query w/ abort) + `AddPoiSheet` (name/category/note); `onLongPress` → same confirm sheet. Custom pins in their own un-clustered violet source (`mapCustom`); tap → callout w/ delete (21.3).
+- [x] **Task 4 — Distances.** `services/routing.ts` (OSRM). Callout "X km away" (haversine) + "Route from you" → `mapRoute` polyline + "12 km · 24 min" summary, degrading offline. **Measure mode** toolbar toggle: tap two points (map or markers), "From my location" seed, straight line + distance + optional Route (21.4).
+- [x] **Task 5 — Close-out.** Gates green (tsc + lint); JOURNEY 21; commit; debrief; **wait for "Phase Approved."**
 
 **Exit criteria (code-level):** custom POIs persist per-destination in MMKV and render in a distinct color; addable via BOTH search and long-press; callouts show haversine distance; OSRM route line + ETA online with haversine fallback offline; measure mode computes A↔B; gates green.
 
