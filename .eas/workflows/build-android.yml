@@ -1,0 +1,20 @@
+name: Build Android on release tag
+
+# Triggered by a version tag (e.g. `git tag v1.0.1 && git push --tags`) rather
+# than every push — a production APK build takes ~20 min and one EAS build
+# credit each time. To build on every push to main instead, replace the `on`
+# block with:
+#   on:
+#     push:
+#       branches: ['main']
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build_android:
+    name: Build Android (production)
+    type: build
+    params:
+      platform: android
+      profile: production

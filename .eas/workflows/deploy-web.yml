@@ -1,0 +1,13 @@
+name: Deploy web to production
+
+# Every push to main redeploys the web (roava.expo.app) — fast, free, no signing keys.
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  deploy_web:
+    name: Deploy web (EAS Hosting)
+    type: deploy
+    params:
+      prod: true
