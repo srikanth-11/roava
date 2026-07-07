@@ -688,28 +688,36 @@ Phase 0 (Expo edition): scaffold → tooling → running app took **minutes** (v
 - Raw `roava://destination/id` → `https://roava.expo.app/destination/id`. Chain: `eas deploy --prod` serves the static web build + `assetlinks.json` (release SHA-256) at a stable domain; `app.json intentFilters autoVerify` for that host makes Android verify+capture the link; `lib/links.ts` centralizes the URL; the Share message uses it. Installed → opens the app on the destination; not → the web page. `curl` confirmed `200 application/json` on the hosted assetlinks before wiring.
 - **Lesson:** a custom scheme can never be a universal link — App Links fundamentally require a domain you control serving the association file. There's no code-only shortcut.
 
+### 22.5 The cloud build had no API keys — .env never left the machine
+
+- **Problem (user-reported on the installed APK):** Unsplash photos and some APIs dead; keyless features (map tiles, sights, currency, flights) fine.
+- **Diagnosis:** `EXPO_PUBLIC_*` keys are inlined into the JS bundle at BUILD time, but they live only in the git-ignored local `.env` — which EAS's servers never received. The build's own log said it: "No environment variables found for the production environment." With empty keys, `hasLiveKeys` is false → the app silently falls back to the MOCK repository. `eas env:list --environment production` confirmed the remote env was populated only AFTER the build.
+- **Solution:** an **OTA update fixed it without a rebuild** — `eas update --branch production --environment production` exports the bundle with the keys inlined (from the EAS env, now populated) and the installed app picks it up on next launch. The keys are now in the EAS environment, so future `eas build`s include them automatically. (First real payoff of the OTA loop: a key/config fix in 2 minutes, no 20-minute rebuild.)
+- **Lesson:** EAS cloud builds do NOT see your local `.env`. Push `EXPO_PUBLIC_*` to the EAS environment (`eas env:create`/`push`) BEFORE building, or the build ships with empty keys. Survival-kit rule 20.
+
 ---
 
 ## Running Tally — Windows RN Developer Survival Kit
 
-| #   | Rule                                                                                                        | Origin |
-| --- | ----------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Check `engines.node` first; manage Node with nvm                                                            | 1.1    |
-| 2   | `nvm use` needs an elevated terminal                                                                        | 1.2    |
-| 3   | `JAVA_HOME` → Android Studio's `jbr` folder, never "latest Java"                                            | 1.3    |
-| 4   | Interactive CLI input: file-redirect through `cmd /c`                                                       | 1.6    |
-| 5   | Extract zips with `tar -xf`, not Expand-Archive                                                             | 1.7    |
-| 6   | Launch emulator/Metro detached (`Start-Process`)                                                            | 1.8    |
-| 7   | Binary output never through PowerShell `>` — use `cmd /c`                                                   | 1.9    |
-| 8   | Delete deep node_modules with robocopy mirror                                                               | 2.2    |
-| 9   | Verify `.env` is git-ignored before first commit                                                            | 3.1    |
-| 10  | Weird emulator state → cold boot (`-no-snapshot-load`)                                                      | 3.2    |
-| 11  | Phone can't reach Metro → `--tunnel`; long-term: Private network profile + `REACT_NATIVE_PACKAGER_HOSTNAME` | 3.3    |
-| 12  | Expo Go SDK mismatch → matching APK from expo.dev/go                                                        | 3.4    |
-| 13  | Everything flaking at once → check free RAM first; recycle long-lived Metro                                 | 10.5   |
-| 14  | External API "200 OK" ≠ success — check the body's own error channel (Overpass `remark`)                    | 10.3   |
-| 15  | A fix with NO effect (not wrong — absent) → verify the running bundle first; airplane toggles kill HMR      | 16.4   |
-| 16  | Files Java parses must be BOM-free — PS 5.1 `-Encoding utf8` writes a BOM that corrupts the first key       | 20.1   |
-| 17  | Subnet changed? Re-check IP-pinned env vars, firewall rule profiles, and the Public/Private category        | 20.2   |
+| #   | Rule                                                                                                         | Origin |
+| --- | ------------------------------------------------------------------------------------------------------------ | ------ |
+| 1   | Check `engines.node` first; manage Node with nvm                                                             | 1.1    |
+| 2   | `nvm use` needs an elevated terminal                                                                         | 1.2    |
+| 3   | `JAVA_HOME` → Android Studio's `jbr` folder, never "latest Java"                                             | 1.3    |
+| 4   | Interactive CLI input: file-redirect through `cmd /c`                                                        | 1.6    |
+| 5   | Extract zips with `tar -xf`, not Expand-Archive                                                              | 1.7    |
+| 6   | Launch emulator/Metro detached (`Start-Process`)                                                             | 1.8    |
+| 7   | Binary output never through PowerShell `>` — use `cmd /c`                                                    | 1.9    |
+| 8   | Delete deep node_modules with robocopy mirror                                                                | 2.2    |
+| 9   | Verify `.env` is git-ignored before first commit                                                             | 3.1    |
+| 10  | Weird emulator state → cold boot (`-no-snapshot-load`)                                                       | 3.2    |
+| 11  | Phone can't reach Metro → `--tunnel`; long-term: Private network profile + `REACT_NATIVE_PACKAGER_HOSTNAME`  | 3.3    |
+| 12  | Expo Go SDK mismatch → matching APK from expo.dev/go                                                         | 3.4    |
+| 13  | Everything flaking at once → check free RAM first; recycle long-lived Metro                                  | 10.5   |
+| 14  | External API "200 OK" ≠ success — check the body's own error channel (Overpass `remark`)                     | 10.3   |
+| 15  | A fix with NO effect (not wrong — absent) → verify the running bundle first; airplane toggles kill HMR       | 16.4   |
+| 16  | Files Java parses must be BOM-free — PS 5.1 `-Encoding utf8` writes a BOM that corrupts the first key        | 20.1   |
+| 17  | Subnet changed? Re-check IP-pinned env vars, firewall rule profiles, and the Public/Private category         | 20.2   |
 | 18  | Adding a secret-bearing file → `git check-ignore <file>` BEFORE `git add -A`; ignore edits can silently fail | 22.1   |
 | 19  | Local `--legacy-peer-deps` is invisible CI debt → encode it in `.npmrc` so clean cloud installs match        | 22.2   |
+| 20  | EAS cloud builds don't see local `.env` → push `EXPO_PUBLIC_*` to the EAS environment before building        | 22.5   |
