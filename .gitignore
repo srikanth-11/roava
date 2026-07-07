@@ -49,5 +49,3 @@ example
 
 # env secrets (EXPO_PUBLIC_* still ship in the binary - free keys only)
 .env
-
-/docs
