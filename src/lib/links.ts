@@ -7,6 +7,10 @@
  */
 export const WEB_BASE = 'https://roava.expo.app';
 
+/** Where "Get the app" points — the EAS build artifact for now (a store link later). */
+export const GET_APP_URL =
+  'https://expo.dev/artifacts/eas/7TUPIdEaMua9kcJ-S-CdFQJeXKiMfqYZTx2rE5Ji8uY.apk';
+
 export function destinationShareUrl(id: string): string {
   return `${WEB_BASE}/destination/${id}`;
 }
