@@ -1,4 +1,4 @@
-import { Platform, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 export interface ScreenProps {
@@ -9,11 +9,6 @@ export interface ScreenProps {
   edges?: Edge[];
   className?: string;
 }
-
-// The app is mobile-first; on a desktop browser its screens shouldn't stretch
-// edge-to-edge, so web constrains content to a centered column. (The share
-// landing builds its own full-bleed layout and doesn't use Screen.)
-const WEB_COLUMN = Platform.OS === 'web' ? 'w-full max-w-xl mx-auto' : '';
 
 export function Screen({
   children,
@@ -26,13 +21,13 @@ export function Screen({
       {scroll ? (
         <ScrollView
           className={`flex-1 ${className}`}
-          contentContainerClassName={`pb-8 ${WEB_COLUMN}`}
+          contentContainerClassName="pb-8"
           keyboardShouldPersistTaps="handled"
         >
           {children}
         </ScrollView>
       ) : (
-        <View className={`flex-1 ${WEB_COLUMN} ${className}`}>{children}</View>
+        <View className={`flex-1 ${className}`}>{children}</View>
       )}
     </SafeAreaView>
   );
