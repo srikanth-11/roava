@@ -45,6 +45,25 @@ export function pointsToFeatureCollection(points: LatLon[]) {
   };
 }
 
+/**
+ * Route alternatives → one FeatureCollection; each LineString carries its
+ * array index as `idx` so layers can style/select per route.
+ */
+export function routesToFeatureCollection(routes: { coords: LatLon[] }[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: routes.map((r, idx) => ({
+      type: 'Feature' as const,
+      id: `route-${idx}`,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: r.coords.map((c) => [c.lon, c.lat]),
+      },
+      properties: { idx },
+    })),
+  };
+}
+
 /** A path (OSRM route or a straight measure line) → single-feature collection. */
 export function lineToFeatureCollection(coords: LatLon[]) {
   return {

@@ -1,5 +1,5 @@
 import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { MapPin, Search } from 'lucide-react-native';
+import { MapPin, Search, type LucideIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { forwardRef, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
@@ -11,14 +11,25 @@ import { palette } from '@/lib/palette';
 import type { GeoResult } from '@/services/geocode';
 import { useGeocodePlacesQuery } from '@/store/api';
 
+/** Non-search shortcut rendered above results (Your location, Choose on map…). */
+export interface QuickOption {
+  id: string;
+  icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+}
+
 interface PlaceSearchSheetProps {
   /** Bias results toward the destination. */
   near: LatLon;
   onSelect: (result: GeoResult) => void;
+  /** Sheet heading — defaults to the add-a-pin copy. */
+  title?: string;
+  quickOptions?: QuickOption[];
 }
 
 export const PlaceSearchSheet = forwardRef<BottomSheetModal, PlaceSearchSheetProps>(
-  function PlaceSearchSheet({ near, onSelect }, ref) {
+  function PlaceSearchSheet({ near, onSelect, title = 'Find a place', quickOptions }, ref) {
     const { colorScheme } = useColorScheme();
     const colors = palette[colorScheme ?? 'light'];
     const onSheetChange = useSheetBackHandler();
@@ -51,7 +62,7 @@ export const PlaceSearchSheet = forwardRef<BottomSheetModal, PlaceSearchSheetPro
           keyboardShouldPersistTaps="handled"
         >
           <View className="gap-4 pt-2">
-            <Text variant="h3">Find a place</Text>
+            <Text variant="h3">{title}</Text>
             <Input
               label="Search"
               placeholder="Café, landmark, address…"
@@ -62,6 +73,23 @@ export const PlaceSearchSheet = forwardRef<BottomSheetModal, PlaceSearchSheetPro
               leftSlot={<Icon icon={Search} size={20} color="muted" />}
               accessibilityLabel="Search for a place"
             />
+
+            {quickOptions && quickOptions.length > 0 ? (
+              <View className="gap-1">
+                {quickOptions.map((opt) => (
+                  <Pressable
+                    key={opt.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={opt.label}
+                    onPress={opt.onPress}
+                    className="flex-row items-center gap-3 rounded-lg p-3 active:bg-border"
+                  >
+                    <Icon icon={opt.icon} size={20} color="primary" />
+                    <Text variant="label">{opt.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
 
             {debounced.length < 2 ? (
               <Text variant="body-sm" color="muted">

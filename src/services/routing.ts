@@ -8,8 +8,9 @@ import { createHttpClient } from '@/services/http';
  * haversine when it's unreachable or offline.
  *
  * Recon (2026-07-07): /route/v1/driving/{lon,lat};{lon,lat} → code "Ok",
- * routes[0].distance (m), .duration (s), .geometry (GeoJSON LineString of
- * [lon, lat] with overview=full).
+ * routes[].distance (m), .duration (s), .geometry (GeoJSON LineString of
+ * [lon, lat] with overview=full). `alternatives=true` returns up to 3
+ * candidate routes (the demo server caps it; often 1 on short/rural trips).
  */
 
 interface OsrmRoute {
@@ -26,7 +27,7 @@ interface OsrmResponse {
 export interface RouteResult {
   distanceM: number;
   durationS: number;
-  /** Polyline as (lat, lon) points, ready for lineToFeatureCollection. */
+  /** Polyline as (lat, lon) points, ready for routesToFeatureCollection. */
   coords: LatLon[];
 }
 
@@ -36,21 +37,21 @@ const client = createHttpClient({
   headers: { 'User-Agent': 'Roava/1.0 (+https://roava.expo.app)' },
 });
 
-export async function getRoute(from: LatLon, to: LatLon): Promise<RouteResult> {
+/** All route alternatives between two points — index 0 is OSRM's best. */
+export async function getRoutes(from: LatLon, to: LatLon): Promise<RouteResult[]> {
   try {
     const coords = `${from.lon},${from.lat};${to.lon},${to.lat}`;
     const res = await client.get<OsrmResponse>(`/route/v1/driving/${coords}`, {
-      params: { overview: 'full', geometries: 'geojson' },
+      params: { overview: 'full', geometries: 'geojson', alternatives: 'true' },
     });
-    const route = res.data.routes[0];
-    if (res.data.code !== 'Ok' || !route) {
+    if (res.data.code !== 'Ok' || res.data.routes.length === 0) {
       throw new Error(`OSRM: no route (${res.data.code})`);
     }
-    return {
+    return res.data.routes.map((route) => ({
       distanceM: route.distance,
       durationS: route.duration,
       coords: route.geometry.coordinates.map(([lon, lat]) => ({ lat, lon })),
-    };
+    }));
   } catch (error) {
     throw toAppError(error);
   }

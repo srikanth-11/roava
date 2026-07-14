@@ -10,31 +10,46 @@ import {
 } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams, type ErrorBoundaryProps } from 'expo-router';
-import { ArrowLeft, LocateOff, Navigation, Ruler, Search, Trash2, X } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Building2,
+  LocateFixed,
+  LocateOff,
+  MapPin,
+  Navigation,
+  Route as RouteIcon,
+  Ruler,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge, Button, ErrorState, Icon, Screen, Skeleton, Text } from '@/components/ui';
 import { CrashScreen } from '@/components/shared/CrashScreen';
 import { PoiRow } from '@/features/destination/PoiSection';
 import { AddPoiSheet, type AddPoiValues } from '@/features/map/AddPoiSheet';
+import { DirectionsBar, RoutesList, type Endpoint } from '@/features/map/DirectionsPanel';
 import {
   customPoisToFeatureCollection,
   lineToFeatureCollection,
   poisToFeatureCollection,
   pointsToFeatureCollection,
+  routesToFeatureCollection,
 } from '@/features/map/geojson';
-import { PlaceSearchSheet } from '@/features/map/PlaceSearchSheet';
+import { PlaceSearchSheet, type QuickOption } from '@/features/map/PlaceSearchSheet';
 import { useOnline } from '@/hooks/useOnline';
-import { formatDistance, formatDuration, haversineMeters, type LatLon } from '@/lib/geo';
+import { formatDistance, haversineMeters, type LatLon } from '@/lib/geo';
 import { hapticSuccess } from '@/lib/haptics';
 import { MAP_STYLES, OSM_ATTRIBUTION } from '@/lib/mapStyles';
 import { palette } from '@/lib/palette';
 import type { Poi } from '@/repositories/pois';
 import type { GeoResult } from '@/services/geocode';
 import { isAppError } from '@/services/errors';
-import { getRoute } from '@/services/routing';
+import { getRoutes, type RouteResult } from '@/services/routing';
 import {
   useAddCustomPoiMutation,
   useDeleteCustomPoiMutation,
@@ -52,6 +67,21 @@ const DEFAULT_ZOOM = 12.5;
 /** A tapped marker — OSM sight or a user pin; `source` discriminates them. */
 type SelectedMarker = Poi | CustomPoi;
 
+/** Bounds of a polyline for Camera.fitBounds — [west, south, east, north]. */
+function boundsOf(coords: LatLon[]): [number, number, number, number] {
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  for (const c of coords) {
+    if (c.lat < minLat) minLat = c.lat;
+    if (c.lat > maxLat) maxLat = c.lat;
+    if (c.lon < minLon) minLon = c.lon;
+    if (c.lon > maxLon) maxLon = c.lon;
+  }
+  return [minLon, minLat, maxLon, maxLat];
+}
+
 export default function DestinationMap() {
   const params = useLocalSearchParams<{ id: string; name?: string; lat?: string; lon?: string }>();
   const destinationId = String(params.id ?? '');
@@ -64,6 +94,9 @@ export default function DestinationMap() {
   const scheme = colorScheme ?? 'light';
   const colors = palette[scheme];
   const online = useOnline();
+  const insets = useSafeAreaInsets();
+  // Every floating bottom overlay clears the gesture bar by this much.
+  const bottomOffset = insets.bottom + 16;
 
   const { data, error, isLoading, refetch } = useGetMapPoisQuery(
     { lat, lon },
@@ -77,6 +110,7 @@ export default function DestinationMap() {
   const sourceRef = useRef<GeoJSONSourceRef>(null);
   const searchSheetRef = useRef<BottomSheetModal>(null);
   const addSheetRef = useRef<BottomSheetModal>(null);
+  const pickSheetRef = useRef<BottomSheetModal>(null);
 
   const [selected, setSelected] = useState<SelectedMarker | null>(null);
   const [mapFailed, setMapFailed] = useState(false);
@@ -89,15 +123,19 @@ export default function DestinationMap() {
     name?: string;
   } | null>(null);
   const [addSeed, setAddSeed] = useState(0);
-  // A drawn route (from-you or between measure points) + its numbers.
-  const [route, setRoute] = useState<{
-    coords: LatLon[];
-    distanceM: number;
-    durationS: number;
-  } | null>(null);
-  const [routing, setRouting] = useState(false);
-  const [routeFailed, setRouteFailed] = useState(false);
-  // Measure mode: collect two points → straight-line (+ optional route).
+
+  // Directions planner: typed/tapped endpoints → OSRM alternatives.
+  const [dirActive, setDirActive] = useState(false);
+  const [dirFrom, setDirFrom] = useState<Endpoint | null>(null);
+  const [dirTo, setDirTo] = useState<Endpoint | null>(null);
+  const [pickTarget, setPickTarget] = useState<'from' | 'to'>('from');
+  const [mapPick, setMapPick] = useState(false);
+  const [routes, setRoutes] = useState<RouteResult[]>([]);
+  const [routeIdx, setRouteIdx] = useState(0);
+  const [fetchingRoutes, setFetchingRoutes] = useState(false);
+  const [routesFailed, setRoutesFailed] = useState(false);
+
+  // Measure mode: collect two points → straight-line distance.
   const [measuring, setMeasuring] = useState(false);
   const [measurePts, setMeasurePts] = useState<LatLon[]>([]);
 
@@ -121,6 +159,36 @@ export default function DestinationMap() {
     };
   }, []);
 
+  // Monotonic ticket: a response only lands if it's still the newest request.
+  const routeReqSeq = useRef(0);
+
+  const requestRoutes = (from: Endpoint, to: Endpoint) => {
+    const seq = ++routeReqSeq.current;
+    setFetchingRoutes(true);
+    setRoutesFailed(false);
+    setRoutes([]);
+    setRouteIdx(0);
+    getRoutes(from, to)
+      .then((rs) => {
+        if (seq !== routeReqSeq.current) return;
+        setRoutes(rs);
+        const first = rs[0];
+        if (first) {
+          // Padding clears the directions bar (top) and routes list (bottom).
+          cameraRef.current?.fitBounds(boundsOf(first.coords), {
+            padding: { top: 180, right: 48, bottom: 260, left: 48 },
+            duration: 600,
+          });
+        }
+      })
+      .catch(() => {
+        if (seq === routeReqSeq.current) setRoutesFailed(true);
+      })
+      .finally(() => {
+        if (seq === routeReqSeq.current) setFetchingRoutes(false);
+      });
+  };
+
   const openAddSheet = (pin: { lat: number; lon: number; name?: string }) => {
     setSelected(null);
     setProvisional(pin);
@@ -129,6 +197,7 @@ export default function DestinationMap() {
   };
 
   const onLongPress = (e: { nativeEvent: { lngLat: [number, number] } }) => {
+    if (dirActive) return; // planning owns the map; no pin-drops mid-route
     const [pLon, pLat] = e.nativeEvent.lngLat;
     openAddSheet({ lat: pLat, lon: pLon });
   };
@@ -169,33 +238,109 @@ export default function DestinationMap() {
       .catch(() => {});
   };
 
-  const clearRoute = () => {
-    setRoute(null);
-    setRouteFailed(false);
+  /* ------------------------- directions ------------------------- */
+
+  const setEndpoint = (target: 'from' | 'to', ep: Endpoint) => {
+    const nextFrom = target === 'from' ? ep : dirFrom;
+    const nextTo = target === 'to' ? ep : dirTo;
+    if (target === 'from') setDirFrom(ep);
+    else setDirTo(ep);
+    if (nextFrom && nextTo) requestRoutes(nextFrom, nextTo);
   };
 
-  const runRoute = (from: LatLon, to: LatLon) => {
-    setRouting(true);
-    setRouteFailed(false);
-    void getRoute(from, to)
-      .then((r) => setRoute({ coords: r.coords, distanceM: r.distanceM, durationS: r.durationS }))
-      .catch(() => setRouteFailed(true))
-      .finally(() => setRouting(false));
+  const openPicker = (target: 'from' | 'to') => {
+    setPickTarget(target);
+    setMapPick(false);
+    pickSheetRef.current?.present();
   };
+
+  const openDirections = (from: Endpoint | null, to: Endpoint | null) => {
+    setSelected(null);
+    setMeasuring(false);
+    setMeasurePts([]);
+    setRoutes([]);
+    setRouteIdx(0);
+    setRoutesFailed(false);
+    setDirFrom(from);
+    setDirTo(to);
+    setDirActive(true);
+    if (!from) openPicker('from');
+    else if (!to) openPicker('to');
+    else requestRoutes(from, to);
+  };
+
+  const closeDirections = () => {
+    setDirActive(false);
+    setDirFrom(null);
+    setDirTo(null);
+    setRoutes([]);
+    setRouteIdx(0);
+    setRoutesFailed(false);
+    setMapPick(false);
+  };
+
+  const swapEndpoints = () => {
+    setDirFrom(dirTo);
+    setDirTo(dirFrom);
+    if (dirFrom && dirTo) requestRoutes(dirTo, dirFrom);
+  };
+
+  const yourLocationEndpoint: Endpoint | null = userLoc
+    ? { ...userLoc, label: 'Your location' }
+    : null;
+
+  const pickQuickOptions: QuickOption[] = [
+    ...(yourLocationEndpoint
+      ? [
+          {
+            id: 'me',
+            icon: LocateFixed,
+            label: 'Your location',
+            onPress: () => {
+              setEndpoint(pickTarget, yourLocationEndpoint);
+              pickSheetRef.current?.dismiss();
+            },
+          },
+        ]
+      : []),
+    {
+      id: 'map',
+      icon: MapPin,
+      label: 'Choose on the map',
+      onPress: () => {
+        setMapPick(true);
+        pickSheetRef.current?.dismiss();
+      },
+    },
+    {
+      id: 'center',
+      icon: Building2,
+      label: `${cityName} center`,
+      onPress: () => {
+        setEndpoint(pickTarget, { lat, lon, label: `${cityName} center` });
+        pickSheetRef.current?.dismiss();
+      },
+    },
+  ];
+
+  const onPickSelect = (r: GeoResult) => {
+    setEndpoint(pickTarget, { lat: r.lat, lon: r.lon, label: r.name });
+    pickSheetRef.current?.dismiss();
+  };
+
+  /* --------------------------- measure --------------------------- */
 
   const selectMarker = (m: SelectedMarker) => {
-    clearRoute();
     setSelected(m);
   };
 
   const addMeasurePoint = (p: LatLon) => {
-    clearRoute();
     setMeasurePts((pts) => (pts.length >= 2 ? [p] : [...pts, p]));
   };
 
   const toggleMeasure = () => {
     setSelected(null);
-    clearRoute();
+    closeDirections();
     setMeasurePts([]);
     setMeasuring((v) => !v);
   };
@@ -204,6 +349,7 @@ export default function DestinationMap() {
   const measureDistance = measureA && measureB ? haversineMeters(measureA, measureB) : 0;
   const selectedDistance =
     userLoc && selected ? haversineMeters(userLoc, { lat: selected.lat, lon: selected.lon }) : null;
+  const straightLineM = dirFrom && dirTo ? haversineMeters(dirFrom, dirTo) : null;
 
   if (!hasCoords) {
     return (
@@ -240,9 +386,17 @@ export default function DestinationMap() {
             onDidFailLoadingMap={() => setMapFailed(true)}
             onLongPress={onLongPress}
             onPress={(e) => {
-              if (!measuring) return;
               const [pLon, pLat] = e.nativeEvent.lngLat;
-              addMeasurePoint({ lat: pLat, lon: pLon });
+              if (dirActive && mapPick) {
+                setEndpoint(pickTarget, {
+                  lat: pLat,
+                  lon: pLon,
+                  label: `Dropped pin (${pLat.toFixed(3)}, ${pLon.toFixed(3)})`,
+                });
+                setMapPick(false);
+                return;
+              }
+              if (measuring) addMeasurePoint({ lat: pLat, lon: pLon });
             }}
           >
             <Camera ref={cameraRef} initialViewState={{ center: [lon, lat], zoom: DEFAULT_ZOOM }} />
@@ -260,6 +414,15 @@ export default function DestinationMap() {
                 if (!feature || feature.geometry.type !== 'Point') return;
                 const [fLon, fLat] = feature.geometry.coordinates as [number, number];
                 const props = feature.properties ?? {};
+                if (dirActive && mapPick) {
+                  setEndpoint(pickTarget, {
+                    lat: fLat,
+                    lon: fLon,
+                    label: (props.name as string) ?? 'Marked place',
+                  });
+                  setMapPick(false);
+                  return;
+                }
                 if (measuring) {
                   addMeasurePoint({ lat: fLat, lon: fLon });
                   return;
@@ -322,14 +485,22 @@ export default function DestinationMap() {
               data={customPoisToFeatureCollection(customPois ?? [])}
               onPress={(event) => {
                 const feature = event.nativeEvent.features[0];
-                if (measuring) {
-                  if (feature?.geometry.type === 'Point') {
-                    const [cLon, cLat] = feature.geometry.coordinates as [number, number];
-                    addMeasurePoint({ lat: cLat, lon: cLon });
-                  }
+                if (feature?.geometry.type !== 'Point') return;
+                const [cLon, cLat] = feature.geometry.coordinates as [number, number];
+                const props = feature.properties ?? {};
+                if (dirActive && mapPick) {
+                  setEndpoint(pickTarget, {
+                    lat: cLat,
+                    lon: cLon,
+                    label: (props.name as string) ?? 'Your pin',
+                  });
+                  setMapPick(false);
                   return;
                 }
-                const props = feature?.properties ?? {};
+                if (measuring) {
+                  addMeasurePoint({ lat: cLat, lon: cLon });
+                  return;
+                }
                 const cp = (customPois ?? []).find((p) => p.id === props.id);
                 if (cp) selectMarker(cp);
               }}
@@ -383,14 +554,52 @@ export default function DestinationMap() {
               </GeoJSONSource>
             ) : null}
 
-            {/* Drawn route (from-you or between measure points) */}
-            {route ? (
-              <GeoJSONSource id="route" data={lineToFeatureCollection(route.coords)}>
+            {/* Route alternatives — muted alternates under the selected line */}
+            {dirActive && routes.length > 0 ? (
+              <GeoJSONSource
+                id="dir-routes"
+                data={routesToFeatureCollection(routes)}
+                onPress={(event) => {
+                  const idx = event.nativeEvent.features[0]?.properties?.idx;
+                  if (typeof idx === 'number') setRouteIdx(idx);
+                }}
+              >
                 <Layer
                   type="line"
-                  id="route-line"
+                  id="dir-alts"
+                  filter={['!=', ['get', 'idx'], routeIdx]}
                   layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-                  paint={{ 'line-color': colors.mapRoute, 'line-width': 5, 'line-opacity': 0.85 }}
+                  paint={{
+                    'line-color': colors.mutedForeground,
+                    'line-width': 4,
+                    'line-opacity': 0.5,
+                  }}
+                />
+                <Layer
+                  type="line"
+                  id="dir-selected"
+                  filter={['==', ['get', 'idx'], routeIdx]}
+                  layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                  paint={{ 'line-color': colors.mapRoute, 'line-width': 5, 'line-opacity': 0.9 }}
+                />
+              </GeoJSONSource>
+            ) : null}
+
+            {/* Trip endpoints */}
+            {dirActive && (dirFrom || dirTo) ? (
+              <GeoJSONSource
+                id="dir-endpoints"
+                data={pointsToFeatureCollection([dirFrom, dirTo].filter((e): e is Endpoint => !!e))}
+              >
+                <Layer
+                  type="circle"
+                  id="dir-endpoint-dots"
+                  paint={{
+                    'circle-radius': 7,
+                    'circle-color': colors.mapRoute,
+                    'circle-stroke-width': 2.5,
+                    'circle-stroke-color': colors.surface,
+                  }}
                 />
               </GeoJSONSource>
             ) : null}
@@ -427,87 +636,99 @@ export default function DestinationMap() {
           </MapLibreMap>
         )}
 
-        {/* Top overlay: back + title + query state + search. Drops below the
-            OfflineBanner when offline so its controls stay reachable. */}
-        <View
-          className={`absolute inset-x-0 top-0 flex-row items-center gap-3 px-4 ${
-            online ? 'pt-12' : 'pt-28'
-          }`}
-        >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}
-            className="h-12 w-12 items-center justify-center rounded-full bg-surface"
+        {/* Top overlay. Directions mode swaps the control row for the planner
+            bar. Drops below the OfflineBanner when offline. */}
+        {dirActive && !mapFailed ? (
+          <View className={`absolute inset-x-0 top-0 px-4 ${online ? 'pt-12' : 'pt-28'}`}>
+            <DirectionsBar
+              from={dirFrom}
+              to={dirTo}
+              onEditFrom={() => openPicker('from')}
+              onEditTo={() => openPicker('to')}
+              onSwap={swapEndpoints}
+              onClose={closeDirections}
+            />
+            {mapPick ? (
+              <View className="mt-2 items-center">
+                <View className="rounded-full bg-surface/90 px-3 py-1.5">
+                  <Text variant="caption" color="muted">
+                    Tap the map to set the{' '}
+                    {pickTarget === 'from' ? 'starting point' : 'destination'}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <View
+            className={`absolute inset-x-0 top-0 flex-row items-center gap-3 px-4 ${
+              online ? 'pt-12' : 'pt-28'
+            }`}
           >
-            <Icon icon={ArrowLeft} accessibilityLabel="Back" />
-          </Pressable>
-          <View className="rounded-full bg-surface px-4 py-2">
-            <Text variant="label">{cityName}</Text>
-          </View>
-          {isLoading ? <Skeleton className="h-8 w-20 rounded-full" /> : null}
-          {error ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Retry loading sights"
-              onPress={() => void refetch()}
-              className="rounded-full bg-surface px-3 py-2"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}
+              className="h-12 w-12 items-center justify-center rounded-full bg-surface"
             >
-              <Text variant="caption" color="destructive">
-                {isAppError(error) ? 'Sights failed — retry' : 'Retry'}
-              </Text>
+              <Icon icon={ArrowLeft} accessibilityLabel="Back" />
             </Pressable>
-          ) : null}
-          <View className="flex-1" />
-          {!mapFailed ? (
-            <>
+            <View className="rounded-full bg-surface px-4 py-2">
+              <Text variant="label">{cityName}</Text>
+            </View>
+            {isLoading ? <Skeleton className="h-8 w-20 rounded-full" /> : null}
+            {error ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={measuring ? 'Exit measure mode' : 'Measure distance'}
-                onPress={toggleMeasure}
-                className={`h-12 w-12 items-center justify-center rounded-full ${
-                  measuring ? 'bg-primary' : 'bg-surface'
-                }`}
+                accessibilityLabel="Retry loading sights"
+                onPress={() => void refetch()}
+                className="rounded-full bg-surface px-3 py-2"
               >
-                <Icon
-                  icon={Ruler}
-                  color={measuring ? 'on-primary' : 'default'}
-                  accessibilityLabel="Measure"
-                />
+                <Text variant="caption" color="destructive">
+                  {isAppError(error) ? 'Sights failed — retry' : 'Retry'}
+                </Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Search to add a place"
-                onPress={() => searchSheetRef.current?.present()}
-                className="h-12 w-12 items-center justify-center rounded-full bg-surface"
-              >
-                <Icon icon={Search} accessibilityLabel="Search" />
-              </Pressable>
-            </>
-          ) : null}
-        </View>
-
-        {/* Route summary — shown while a route is drawn (needs granted location,
-            so it never collides with the location-denied banner) */}
-        {route ? (
-          <View className="absolute inset-x-4 top-28 flex-row items-center gap-2 rounded-lg border border-border bg-surface p-3">
-            <Icon icon={Navigation} size={16} color="primary" />
-            <Text variant="caption" className="flex-1">
-              {formatDistance(route.distanceM)} · {formatDuration(route.durationS)} driving
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Clear route"
-              hitSlop={8}
-              onPress={clearRoute}
-            >
-              <Icon icon={X} size={16} color="muted" accessibilityLabel="Clear route" />
-            </Pressable>
+            ) : null}
+            <View className="flex-1" />
+            {!mapFailed ? (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Get directions"
+                  onPress={() => openDirections(yourLocationEndpoint, null)}
+                  className="h-12 w-12 items-center justify-center rounded-full bg-surface"
+                >
+                  <Icon icon={RouteIcon} accessibilityLabel="Directions" />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={measuring ? 'Exit measure mode' : 'Measure distance'}
+                  onPress={toggleMeasure}
+                  className={`h-12 w-12 items-center justify-center rounded-full ${
+                    measuring ? 'bg-primary' : 'bg-surface'
+                  }`}
+                >
+                  <Icon
+                    icon={Ruler}
+                    color={measuring ? 'on-primary' : 'default'}
+                    accessibilityLabel="Measure"
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Search to add a place"
+                  onPress={() => searchSheetRef.current?.present()}
+                  className="h-12 w-12 items-center justify-center rounded-full bg-surface"
+                >
+                  <Icon icon={Search} accessibilityLabel="Search" />
+                </Pressable>
+              </>
+            ) : null}
           </View>
-        ) : null}
+        )}
 
         {/* Location denied — quiet, first-class */}
-        {locationGranted === false && !mapFailed ? (
+        {locationGranted === false && !mapFailed && !dirActive ? (
           <View className="absolute inset-x-4 top-28 flex-row items-center gap-2 rounded-lg bg-surface p-3">
             <Icon icon={LocateOff} size={16} color="muted" />
             <Text variant="caption" color="muted" className="flex-1">
@@ -526,9 +747,23 @@ export default function DestinationMap() {
           </View>
         ) : null}
 
+        {/* Routes list — the planner's bottom panel */}
+        {dirActive && !mapFailed && dirFrom && dirTo ? (
+          <View className="absolute inset-x-4" style={{ bottom: bottomOffset }}>
+            <RoutesList
+              routes={routes}
+              selectedIdx={routeIdx}
+              onSelect={setRouteIdx}
+              fetching={fetchingRoutes}
+              failed={routesFailed}
+              straightLineM={straightLineM}
+            />
+          </View>
+        ) : null}
+
         {/* Long-press hint — only until the first custom pin exists */}
-        {!mapFailed && !measuring && !selected && (customPois?.length ?? 0) === 0 ? (
-          <View className="absolute inset-x-4 bottom-10 items-center">
+        {!mapFailed && !measuring && !dirActive && !selected && (customPois?.length ?? 0) === 0 ? (
+          <View className="absolute inset-x-4 items-center" style={{ bottom: bottomOffset }}>
             <View className="rounded-full bg-surface/90 px-3 py-1.5">
               <Text variant="caption" color="muted">
                 Long-press the map to drop a pin
@@ -539,7 +774,10 @@ export default function DestinationMap() {
 
         {/* Measure mode banner */}
         {measuring ? (
-          <View className="absolute inset-x-4 bottom-10 gap-3 rounded-lg border border-border bg-surface p-4">
+          <View
+            className="absolute inset-x-4 gap-3 rounded-lg border border-border bg-surface p-4"
+            style={{ bottom: bottomOffset }}
+          >
             <View className="flex-row items-center gap-3">
               <Icon icon={Ruler} color="primary" />
               <Text variant="label" className="flex-1">
@@ -568,36 +806,32 @@ export default function DestinationMap() {
                   onPress={() => userLoc && addMeasurePoint(userLoc)}
                 />
               ) : null}
-              {measurePts.length === 2 ? (
+              {measurePts.length === 2 && measureA && measureB ? (
                 <Button
-                  label={routing ? 'Routing…' : 'Route'}
+                  label="Route this"
                   size="sm"
                   icon={Navigation}
-                  loading={routing}
-                  onPress={() => {
-                    const [a, b] = measurePts;
-                    if (a && b) runRoute(a, b);
-                  }}
+                  onPress={() =>
+                    openDirections(
+                      { ...measureA, label: 'Point A' },
+                      { ...measureB, label: 'Point B' },
+                    )
+                  }
                 />
               ) : null}
               {measurePts.length > 0 ? (
-                <Button
-                  label="Reset"
-                  size="sm"
-                  variant="ghost"
-                  onPress={() => {
-                    setMeasurePts([]);
-                    clearRoute();
-                  }}
-                />
+                <Button label="Reset" size="sm" variant="ghost" onPress={() => setMeasurePts([])} />
               ) : null}
             </View>
           </View>
         ) : null}
 
         {/* Selected marker callout */}
-        {selected && !measuring ? (
-          <View className="absolute inset-x-4 bottom-10 gap-3 rounded-lg border border-border bg-surface p-4">
+        {selected && !measuring && !dirActive ? (
+          <View
+            className="absolute inset-x-4 gap-3 rounded-lg border border-border bg-surface p-4"
+            style={{ bottom: bottomOffset }}
+          >
             <View className="flex-row items-center gap-3">
               <View className="flex-1 gap-1">
                 <Text variant="label" numberOfLines={1}>
@@ -630,42 +864,36 @@ export default function DestinationMap() {
                 accessibilityRole="button"
                 accessibilityLabel="Close details"
                 hitSlop={8}
-                onPress={() => {
-                  setSelected(null);
-                  clearRoute();
-                }}
+                onPress={() => setSelected(null)}
                 className="h-12 w-12 items-center justify-center"
               >
                 <Icon icon={X} color="muted" accessibilityLabel="Close" />
               </Pressable>
             </View>
-            {userLoc ? (
-              <View className="flex-row items-center gap-2">
-                <Button
-                  label={routing ? 'Routing…' : 'Route from you'}
-                  size="sm"
-                  variant="outline"
-                  icon={Navigation}
-                  loading={routing}
-                  onPress={() => {
-                    if (userLoc && selected) {
-                      runRoute(userLoc, { lat: selected.lat, lon: selected.lon });
-                    }
-                  }}
-                />
-                {routeFailed ? (
-                  <Text variant="caption" color="muted">
-                    Route unavailable
-                  </Text>
-                ) : null}
-              </View>
-            ) : null}
+            <View className="flex-row items-center gap-2">
+              <Button
+                label="Directions"
+                size="sm"
+                variant="outline"
+                icon={Navigation}
+                onPress={() =>
+                  openDirections(yourLocationEndpoint, {
+                    lat: selected.lat,
+                    lon: selected.lon,
+                    label: selected.name,
+                  })
+                }
+              />
+            </View>
           </View>
         ) : null}
 
         {/* OSM attribution — the one obligation the data carries */}
         {!mapFailed ? (
-          <View className="absolute bottom-2 right-2 rounded-sm bg-surface/80 px-1.5 py-0.5">
+          <View
+            className="absolute right-2 rounded-sm bg-surface/80 px-1.5 py-0.5"
+            style={{ bottom: Math.max(insets.bottom, 8) }}
+          >
             <Text variant="caption" color="muted">
               {OSM_ATTRIBUTION}
             </Text>
@@ -674,6 +902,13 @@ export default function DestinationMap() {
       </View>
 
       <PlaceSearchSheet ref={searchSheetRef} near={{ lat, lon }} onSelect={onSearchSelect} />
+      <PlaceSearchSheet
+        ref={pickSheetRef}
+        near={{ lat, lon }}
+        onSelect={onPickSelect}
+        title={pickTarget === 'from' ? 'Starting point' : 'Destination'}
+        quickOptions={pickQuickOptions}
+      />
       <AddPoiSheet
         ref={addSheetRef}
         seed={addSeed}
