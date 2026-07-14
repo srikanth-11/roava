@@ -1,4 +1,4 @@
-import { storage } from '@/lib/storage';
+import { readJson, writeJson } from '@/lib/cache';
 import { toAppError } from '@/services/errors';
 import { fetchUvIndex } from '@/services/openmeteo';
 import {
@@ -169,7 +169,8 @@ function toDaily(res: ForecastResponse, tz: string | null): DailyForecast[] {
   });
 }
 
-/* ---------- cache (TTL + stale-if-error, mirrors currency.ts) ---------- */
+/* ---------- cache (TTL + stale-if-error; partial success caches, so the
+   compose step below owns the flow and lib/cache's readJson does the IO) --- */
 
 const CACHE_PREFIX = 'roava.weather.';
 const TTL_MS = 30 * 60 * 1000;
@@ -178,15 +179,6 @@ type CachedWeather = Omit<FullWeather, 'isStale'>;
 
 function cacheKey(lat: number, lon: number): string {
   return `${CACHE_PREFIX}${lat.toFixed(3)},${lon.toFixed(3)}`;
-}
-
-async function readCache(key: string): Promise<CachedWeather | null> {
-  try {
-    const raw = await storage.getString(key);
-    return raw ? (JSON.parse(raw) as CachedWeather) : null;
-  } catch {
-    return null;
-  }
 }
 
 /* ---------- repository ---------- */
@@ -217,7 +209,7 @@ class LiveWeatherRepository implements WeatherRepository {
 
   async getFullWeather(lat: number, lon: number, timezone: string | null): Promise<FullWeather> {
     const key = cacheKey(lat, lon);
-    const cached = await readCache(key);
+    const cached = await readJson<CachedWeather>(key);
     if (cached && Date.now() - cached.fetchedAt < TTL_MS) {
       return { ...cached, isStale: false };
     }
@@ -276,7 +268,7 @@ class LiveWeatherRepository implements WeatherRepository {
 
     const anySource = result.current || result.hourly || result.aqi || result.uvMax !== null;
     if (anySource) {
-      await storage.setString(key, JSON.stringify(result));
+      await writeJson(key, result);
       return { ...result, isStale: false };
     }
 

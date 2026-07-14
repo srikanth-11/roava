@@ -24,29 +24,14 @@ function emptyDocument(): TripsDocument {
   return { schemaVersion: TRIPS_SCHEMA_VERSION, trips: [] };
 }
 
-/**
- * Stepwise migration seam. Each case upgrades ONE version and falls through —
- * the day schemaVersion bumps to 2, its migration lands here and old
- * documents pass through it on first load.
- */
-function migrate(raw: { schemaVersion?: number } & Record<string, unknown>): unknown {
-  const version = raw.schemaVersion ?? 1;
-  const doc = { ...raw };
-  switch (version) {
-    case TRIPS_SCHEMA_VERSION:
-    default:
-      break;
-  }
-  return { ...doc, schemaVersion: TRIPS_SCHEMA_VERSION };
-}
-
 async function loadDocument(): Promise<TripsDocument> {
   const raw = await storage.getString(STORAGE_KEY);
   if (!raw) return emptyDocument();
 
   try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return tripsDocumentSchema.parse(migrate(parsed));
+    // schemaVersion is stored and validated; the day it bumps to 2, a migrate
+    // step slots in right here, between parse and validate.
+    return tripsDocumentSchema.parse(JSON.parse(raw));
   } catch {
     // Corrupt or unmigratable: preserve the bytes for manual recovery, then
     // start fresh. Losing the handle to data is recoverable; overwriting the

@@ -20,6 +20,15 @@ import type { CustomPoi } from '@/types/customPoi';
 import type { Destination, DestinationDetail } from '@/types/destination';
 import type { Trip } from '@/types/trip';
 
+/** Every queryFn is repository-call → domain data | AppError. One funnel. */
+async function run<T>(fn: () => Promise<T>): Promise<{ data: T } | { error: AppError }> {
+  try {
+    return { data: await fn() };
+  } catch (error) {
+    return { error: toAppError(error) };
+  }
+}
+
 /**
  * Endpoints call repositories via queryFn — RTK Query owns caching/lifecycle,
  * repositories own data access. `fakeBaseQuery` because repositories already
@@ -32,37 +41,18 @@ export const api = createApi({
   endpoints: (builder) => ({
     searchDestinations: builder.query<Destination[], { query: string } & SearchFilters>({
       // `signal` aborts superseded requests at the socket when the arg changes.
-      queryFn: async ({ query, minPopulation }, { signal }) => {
-        try {
-          const data = await searchRepository.searchDestinations(query, { minPopulation }, signal);
-          return { data };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ query, minPopulation }, { signal }) =>
+        run(() => searchRepository.searchDestinations(query, { minPopulation }, signal)),
       // Search results are ephemeral — drop them quickly to keep memory lean.
       keepUnusedDataFor: 30,
     }),
     getDestinationById: builder.query<DestinationDetail, string>({
-      queryFn: async (id) => {
-        try {
-          const data = await destinationsRepository.getDestinationById(id);
-          return { data };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (id) => run(() => destinationsRepository.getDestinationById(id)),
       // Detail is revisited often within a browse session — keep it warm.
       keepUnusedDataFor: 300,
     }),
     getWeather: builder.query<WeatherSnapshot, { lat: number; lon: number }>({
-      queryFn: async ({ lat, lon }) => {
-        try {
-          return { data: await weatherRepository.getCurrent(lat, lon) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ lat, lon }) => run(() => weatherRepository.getCurrent(lat, lon)),
       // Current conditions don't move fast — 10 min saves the free quota.
       keepUnusedDataFor: 600,
     }),
@@ -70,186 +60,100 @@ export const api = createApi({
       FullWeather,
       { lat: number; lon: number; timezone: string | null }
     >({
-      queryFn: async ({ lat, lon, timezone }) => {
-        try {
-          return { data: await weatherRepository.getFullWeather(lat, lon, timezone) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ lat, lon, timezone }) =>
+        run(() => weatherRepository.getFullWeather(lat, lon, timezone)),
       // Repository owns the 30-min disk TTL; RTK just prevents remount churn.
       keepUnusedDataFor: 600,
     }),
     getCurrencyRate: builder.query<CurrencyRate, { base: string; quote: string }>({
-      queryFn: async ({ base, quote }) => {
-        try {
-          return { data: await currencyRepository.getRate(base, quote) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ base, quote }) => run(() => currencyRepository.getRate(base, quote)),
       // Repository already TTL-caches on disk; RTK just avoids re-entry churn.
       keepUnusedDataFor: 3600,
     }),
     searchFlights: builder.query<{ flights: Flight[]; snapshotAge: number }, string>({
-      queryFn: async (query) => {
-        try {
-          return { data: await flightsRepository.searchByCallsign(query) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (query) => run(() => flightsRepository.searchByCallsign(query)),
       // The repository's 30s snapshot does the real caching; keep RTK short.
       keepUnusedDataFor: 15,
     }),
     getFlightState: builder.query<Flight | null, { icao24: string; lat?: number; lon?: number }>({
-      queryFn: async ({ icao24, lat, lon }) => {
-        try {
-          const near = lat !== undefined && lon !== undefined ? { lat, lon } : undefined;
-          return { data: await flightsRepository.getFlight(icao24, near) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ icao24, lat, lon }) =>
+        run(() =>
+          flightsRepository.getFlight(
+            icao24,
+            lat !== undefined && lon !== undefined ? { lat, lon } : undefined,
+          ),
+        ),
       // Always live — polling owns freshness.
       keepUnusedDataFor: 5,
     }),
     getRateTable: builder.query<RateTable, string>({
-      queryFn: async (base) => {
-        try {
-          return { data: await currencyRepository.getRateTable(base) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (base) => run(() => currencyRepository.getRateTable(base)),
       keepUnusedDataFor: 3600,
     }),
     getNearbyPois: builder.query<Poi[], { lat: number; lon: number }>({
-      queryFn: async ({ lat, lon }) => {
-        try {
-          return { data: await poisRepository.getNearby(lat, lon) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ lat, lon }) => run(() => poisRepository.getNearby(lat, lon)),
       keepUnusedDataFor: 600,
     }),
     getMapPois: builder.query<Poi[], { lat: number; lon: number }>({
-      queryFn: async ({ lat, lon }) => {
-        try {
-          return { data: await poisRepository.getNearbyForMap(lat, lon) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ lat, lon }) => run(() => poisRepository.getNearbyForMap(lat, lon)),
       keepUnusedDataFor: 600,
     }),
     getCustomPois: builder.query<CustomPoi[], string>({
       providesTags: (_r, _e, destinationId) => [{ type: 'CustomPois', id: destinationId }],
-      queryFn: async (destinationId) => {
-        try {
-          return { data: await customPoisRepository.getForDestination(destinationId) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (destinationId) => run(() => customPoisRepository.getForDestination(destinationId)),
     }),
     addCustomPoi: builder.mutation<CustomPoi, CreateCustomPoiInput>({
       invalidatesTags: (_r, _e, { destinationId }) => [{ type: 'CustomPois', id: destinationId }],
-      queryFn: async (input) => {
-        try {
-          return { data: await customPoisRepository.add(input) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (input) => run(() => customPoisRepository.add(input)),
     }),
     deleteCustomPoi: builder.mutation<null, { id: string; destinationId: string }>({
       invalidatesTags: (_r, _e, { destinationId }) => [{ type: 'CustomPois', id: destinationId }],
-      queryFn: async ({ id }) => {
-        try {
+      queryFn: ({ id }) =>
+        run<null>(async () => {
           await customPoisRepository.remove(id);
-          return { data: null };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+          return null;
+        }),
     }),
     geocodePlaces: builder.query<GeoResult[], { query: string; lat: number; lon: number }>({
       // `signal` aborts a superseded typeahead request at the socket.
-      queryFn: async ({ query, lat, lon }, { signal }) => {
-        try {
-          return { data: await searchPlaces(query, { lat, lon }, signal) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ query, lat, lon }, { signal }) =>
+        run(() => searchPlaces(query, { lat, lon }, signal)),
       keepUnusedDataFor: 30,
     }),
     getTrips: builder.query<Trip[], void>({
       providesTags: ['Trips'],
-      queryFn: async () => {
-        try {
-          return { data: await tripsRepository.getTrips() };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: () => run(() => tripsRepository.getTrips()),
     }),
     getTrip: builder.query<Trip | null, string>({
       providesTags: (_result, _error, id) => [{ type: 'Trips', id }],
-      queryFn: async (id) => {
-        try {
-          return { data: await tripsRepository.getTrip(id) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (id) => run(() => tripsRepository.getTrip(id)),
     }),
     createTrip: builder.mutation<Trip, CreateTripInput>({
       invalidatesTags: ['Trips'],
-      queryFn: async (input) => {
-        try {
-          return { data: await tripsRepository.createTrip(input) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: (input) => run(() => tripsRepository.createTrip(input)),
     }),
     deleteTrip: builder.mutation<null, string>({
       invalidatesTags: (_r, _e, id) => ['Trips', { type: 'Trips', id }],
-      queryFn: async (id) => {
-        try {
+      queryFn: (id) =>
+        run<null>(async () => {
           await tripsRepository.deleteTrip(id);
-          return { data: null };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+          return null;
+        }),
     }),
     updateTrip: builder.mutation<Trip, { tripId: string; command: TripCommand }>({
       invalidatesTags: (_r, _e, { tripId }) => ['Trips', { type: 'Trips', id: tripId }],
-      queryFn: async ({ tripId, command }) => {
-        try {
-          return { data: await applyTripCommand(tripId, command) };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+      queryFn: ({ tripId, command }) => run(() => applyTripCommand(tripId, command)),
     }),
     getTrending: builder.query<Destination[], void>({
       providesTags: ['Trending'],
-      queryFn: async (_arg, { dispatch }) => {
-        try {
+      queryFn: (_arg, { dispatch }) =>
+        run(async () => {
           const data = await destinationsRepository.getTrending();
           if (data.length > 0) {
             dispatch(trendingCached({ items: data, at: Date.now() }));
           }
-          return { data };
-        } catch (error) {
-          return { error: toAppError(error) };
-        }
-      },
+          return data;
+        }),
     }),
   }),
 });

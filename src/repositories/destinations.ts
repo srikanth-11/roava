@@ -1,4 +1,4 @@
-import { storage } from '@/lib/storage';
+import { readJson, writeJson } from '@/lib/cache';
 import { mockDestinationDetails, mockDestinations } from '@/mocks/destinations';
 import { toAppError } from '@/services/errors';
 import { fetchCityById, fetchTopCities } from '@/services/geodb';
@@ -21,24 +21,18 @@ export interface DestinationsRepository {
 const IMAGE_CACHE_PREFIX = 'roava.image-cache.';
 const DEST_SNAPSHOT_PREFIX = 'roava.dest-snapshot.';
 
-async function getCachedPhoto(cityId: string): Promise<CityPhoto | null> {
-  const raw = await storage.getString(`${IMAGE_CACHE_PREFIX}${cityId}`);
-  return raw ? (JSON.parse(raw) as CityPhoto) : null;
-}
-
 /**
  * Unsplash demo tier = 50 req/h. Photos are looked up once per city, then
  * served from AppStorage forever — a refresh with warm image cache costs
  * ZERO Unsplash requests.
  */
 async function getPhotoWithCache(cityId: string, cityName: string): Promise<CityPhoto | null> {
-  const cached = await getCachedPhoto(cityId);
+  const key = `${IMAGE_CACHE_PREFIX}${cityId}`;
+  const cached = await readJson<CityPhoto>(key);
   if (cached) return cached;
   try {
     const photo = await searchCityPhoto(cityName);
-    if (photo) {
-      await storage.setString(`${IMAGE_CACHE_PREFIX}${cityId}`, JSON.stringify(photo));
-    }
+    if (photo) await writeJson(key, photo);
     return photo;
   } catch {
     // Imagery is enhancement, not content — a missing photo never fails the feed.
@@ -89,17 +83,11 @@ export class LiveDestinationsRepository implements DestinationsRepository {
       };
       // Last-known-good snapshot (no TTL — last-good IS the point): any city
       // ever visited opens offline, with its stale-ness declared.
-      await storage.setString(snapshotKey, JSON.stringify(detail));
+      await writeJson(snapshotKey, detail);
       return detail;
     } catch (error) {
-      const raw = await storage.getString(snapshotKey);
-      if (raw) {
-        try {
-          return { ...(JSON.parse(raw) as DestinationDetail), isStale: true };
-        } catch {
-          // fall through to the original error
-        }
-      }
+      const snapshot = await readJson<DestinationDetail>(snapshotKey);
+      if (snapshot) return { ...snapshot, isStale: true };
       throw error;
     }
   }
